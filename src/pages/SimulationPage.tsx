@@ -1642,48 +1642,67 @@ function ExaminationView({
           )}
         </div>
 
-        {/* Card 3: Clinical Examiner Message Card */}
-        <div className="rounded-2xl bg-slate-600/90 dark:bg-slate-800 p-3 sm:p-4 shadow-xs space-y-2">
-          <div className="rounded-xl bg-white dark:bg-slate-900 p-4 text-slate-800 dark:text-slate-100 shadow-xs space-y-1.5">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-black uppercase tracking-wider text-amber-500">
-                {t("clinicalExaminer")}
-              </p>
-              {isLiveCall && (
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 animate-pulse flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  LIVE CALL
-                </span>
-              )}
-            </div>
-            <div className="text-sm sm:text-base font-bold leading-relaxed whitespace-pre-line text-slate-800 dark:text-slate-100" dir="auto">
-              {latestExaminerMsg || t("examinerWillStart")}
-            </div>
+        {/* Card 3: Clinical Examiner Conversation Flow (Chronological: Question -> Student Answer -> Next Question) */}
+        <div className="rounded-2xl bg-slate-600/90 dark:bg-slate-800 p-3 sm:p-4 shadow-xs space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <p className="text-[11px] font-black uppercase tracking-wider text-amber-400">
+              {t("clinicalExaminer")}
+            </p>
+            {isLiveCall && (
+              <span className="text-[10px] font-bold text-emerald-400 animate-pulse flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                LIVE CALL
+              </span>
+            )}
           </div>
 
-          {messages.length > 2 && (
-            <div className="px-1 max-h-36 overflow-y-auto space-y-1.5 text-xs text-slate-200">
-              {messages.slice(0, -1).map((m, idx) => (
-                <div
-                  key={`${m.id || idx}`}
-                  className={`p-2 rounded-lg ${m.role === 'STUDENT' ? 'bg-slate-700/80 text-white ml-8' : 'bg-slate-800/80 text-slate-300 mr-8'}`}
-                  dir="auto"
-                >
-                  <span className="font-bold text-[10px] text-amber-400 uppercase mr-1">
-                    {m.role === 'STUDENT' ? 'Student: ' : 'Examiner: '}
-                  </span>
-                  {m.content}
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+            {messages.length === 0 ? (
+              <div className="rounded-xl bg-white dark:bg-slate-900 p-4 text-slate-800 dark:text-slate-100 shadow-xs">
+                <p className="text-sm sm:text-base font-bold leading-relaxed" dir="auto">
+                  {t("examinerWillStart")}
+                </p>
+              </div>
+            ) : (
+              messages.map((m, idx) => {
+                const isStudent = m.role === 'STUDENT';
+                return (
+                  <div
+                    key={m.id || idx}
+                    className={`flex ${isStudent ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[92%] sm:max-w-[88%] p-3.5 sm:p-4 rounded-2xl text-sm sm:text-base font-semibold leading-relaxed shadow-xs ${
+                        isStudent
+                          ? 'bg-teal-700 text-white rounded-br-xs'
+                          : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-bl-xs border border-slate-100 dark:border-slate-800'
+                      }`}
+                      dir="auto"
+                    >
+                      {!isStudent && (
+                        <p className="text-[10px] font-black uppercase tracking-wider text-amber-500 mb-1">
+                          {t("clinicalExaminer")}
+                        </p>
+                      )}
+                      <div className="whitespace-pre-line font-bold">
+                        {m.content}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
 
-          {sending && (
-            <div className="px-3 py-1 flex items-center gap-2 text-xs text-slate-200">
-              <Loader2 size={14} className="animate-spin text-amber-300" />
-              <span>{t("examinerTyping")}</span>
-            </div>
-          )}
+            {sending && (
+              <div className="flex justify-start">
+                <div className="rounded-xl bg-white dark:bg-slate-900 px-4 py-2.5 flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 shadow-xs">
+                  <Loader2 size={15} className="animate-spin text-amber-500" />
+                  <span>{t("examinerTyping")}</span>
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
         </div>
 
         {/* Card 4 / Solved Action */}
