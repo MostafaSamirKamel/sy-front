@@ -21,6 +21,21 @@ import {
   Loader2,
   CheckCircle2,
   GraduationCap,
+  Maximize2,
+  X,
+  Star,
+  AlertTriangle,
+  HelpCircle,
+  XCircle,
+  Target,
+  Brain,
+  Layers,
+  Flag,
+  ShieldCheck,
+  Globe,
+  QrCode,
+  FileText,
+  Sparkles,
 } from "lucide-react";
 import api from "../lib/api";
 import { dispatchEntitlementsChanged } from "../lib/entitlementsEvents";
@@ -1297,25 +1312,13 @@ export default function SimulationPage() {
           ) : activeStage === "diagnosis" ? (
             <DiagnosisView
               t={t}
-              messages={diagnosisMessages}
-              input={input}
-              setInput={setInput}
               sendMessage={sendMessage}
               sending={sending}
               chatError={chatError}
               completeSession={completeSession}
               completing={completing}
               completeError={completeError}
-              chatEndRef={chatEndRef}
-              lang={lang}
-              setLang={updateSpeechLanguage}
-              isListening={isListening}
-              isProcessing={isProcessing}
-              isMicSupported={isMicSupported}
-              onToggleMic={toggleMic}
-              micError={micError}
               sessionLocked={sessionLocked}
-              {...liveCallInputProps}
             />
           ) : (
             <HistoryChatView
@@ -1470,7 +1473,7 @@ function ExaminationView({
   endLiveCallLabel?: string;
   sessionLocked?: boolean;
 }) {
-  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(true);
 
   const structuredFindings = parseStructuredFindings(session.case.physicalExam);
   const maneuverModelAnswer = activeManeuver ? structuredFindings[activeManeuver] ?? '' : '';
@@ -1547,24 +1550,24 @@ function ExaminationView({
 
         {/* Clinical examiner chat — takes all remaining mobile height */}
         <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-slate-900 border-t lg:border-t-0 border-slate-200 dark:border-slate-800">
-          {/* Mobile collapsible gallery — collapsed by default so chat stays visible */}
+          {/* Mobile collapsible gallery — open by default with compact height */}
           {activeManeuver && (
             <div className="lg:hidden shrink-0 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80">
               <button
                 type="button"
                 onClick={() => setGalleryOpen((open) => !open)}
-                className="w-full px-3 py-2 flex items-center justify-between gap-2 text-left"
+                className="w-full px-3 py-1.5 flex items-center justify-between gap-2 text-left"
               >
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                   {t("patientSlideGallery")}
                 </span>
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary shrink-0">
                   {galleryOpen ? t("hideClinicalImages") : t("showClinicalImages")}
-                  {galleryOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  {galleryOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                 </span>
               </button>
               {galleryOpen && (
-                <div className="max-h-[22vh] overflow-y-auto overscroll-y-contain px-3 pb-3">
+                <div className="px-3 pb-2">
                   <ClinicalStationPanel
                     maneuverId={activeManeuver}
                     examImages={examImages}
@@ -2039,59 +2042,21 @@ function HistoryChatView({
 
 function DiagnosisView({
   t,
-  messages,
-  input,
-  setInput,
   sendMessage,
   sending,
   chatError,
   completeSession,
   completing,
   completeError,
-  chatEndRef,
-  lang,
-  setLang,
-  isListening,
-  isProcessing,
-  isMicSupported,
-  onToggleMic,
-  micError,
-  isLiveCall,
-  isLiveCallBusy,
-  isLiveCallMicListening,
-  isLiveCallSpeaking,
-  isLiveCallSupported,
-  onToggleLiveCall,
-  liveCallLabel,
-  endLiveCallLabel,
   sessionLocked = false,
 }: {
   t: (k: string) => string;
-  messages: Message[];
-  input: string;
-  setInput: (v: string) => void;
   sendMessage: (text?: string) => Promise<{ success: boolean; reply?: string }>;
   sending: boolean;
   chatError: string;
   completeSession: () => void | Promise<void>;
   completing: boolean;
   completeError: string;
-  chatEndRef: React.RefObject<HTMLDivElement | null>;
-  lang: "AUTO" | "AR" | "EN";
-  setLang: (l: "AUTO" | "AR" | "EN") => void;
-  isListening: boolean;
-  isProcessing: boolean;
-  isMicSupported: boolean;
-  onToggleMic: () => void;
-  micError: string;
-  isLiveCall?: boolean;
-  isLiveCallBusy?: boolean;
-  isLiveCallMicListening?: boolean;
-  isLiveCallSpeaking?: boolean;
-  isLiveCallSupported?: boolean;
-  onToggleLiveCall?: () => void;
-  liveCallLabel?: string;
-  endLiveCallLabel?: string;
   sessionLocked?: boolean;
 }) {
   const [impression, setImpression] = useState("");
@@ -2119,190 +2084,77 @@ function DiagnosisView({
     await completeSession();
   };
 
-  const handleLearnWithExaminer = async () => {
-    const text = buildSubmission();
-    if (!text) return;
-    await sendMessage(`${text}\n\n${t("learnWithExaminerRequest")}`);
-  };
-
   return (
-    <div className="flex-1 min-h-0 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 md:py-10">
-          <div className="flex justify-center mb-6">
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 text-primary text-[11px] font-semibold tracking-wider uppercase bg-white dark:bg-slate-900 shadow-sm">
-              <Stethoscope size={14} />
-              {t("diagnosticFinalizationStation")}
-            </span>
-          </div>
-
-          <h1 className="text-3xl md:text-4xl font-bold text-center text-slate-900 dark:text-white mb-3">
-            {t("clinicalFormulation")}
-          </h1>
-          <p className="text-center text-slate-500 dark:text-slate-400 max-w-2xl mx-auto mb-10 text-sm md:text-base leading-relaxed">
-            {t("clinicalFormulationDesc")}
-          </p>
-
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-6">
-              <div className="flex items-center gap-2 mb-4 text-teal-600 dark:text-teal-400">
-                <Search size={18} />
-                <span className="text-xs font-bold tracking-wider uppercase">
-                  {t("diagnosticImpression")}
-                </span>
-              </div>
-              <textarea
-                className="w-full min-h-[220px] rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 p-4 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 resize-y focus:outline-none focus:ring-2 focus:ring-teal-500/30"
-                placeholder={t("diagnosticImpressionPlaceholder")}
-                value={impression}
-                onChange={(e) => setImpression(e.target.value)}
-                disabled={sending || sessionLocked}
-              />
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-6">
-              <div className="flex items-center gap-2 mb-4 text-emerald-600 dark:text-emerald-400">
-                <ClipboardCheck size={18} />
-                <span className="text-xs font-bold tracking-wider uppercase">
-                  {t("initialManagement")}
-                </span>
-              </div>
-              <textarea
-                className="w-full min-h-[220px] rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 p-4 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 resize-y focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                placeholder={t("initialManagementPlaceholder")}
-                value={management}
-                onChange={(e) => setManagement(e.target.value)}
-                disabled={sending || sessionLocked}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center gap-3 mb-6">
-            {(chatError || completeError) && (
-              <p className="text-sm text-red-500 text-center">{chatError || completeError}</p>
-            )}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <button
-                onClick={() => void handleCompleteAndEvaluate()}
-                disabled={completing || sending || sessionLocked}
-                className="btn-primary px-8 min-w-[220px] flex items-center justify-center gap-2"
-              >
-                {completing || sending ? (
-                  <>
-                    <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    {completing ? t("generatingFeedback") : t("examinerTyping")}
-                  </>
-                ) : (
-                  t("completeSession")
-                )}
-              </button>
-              <button
-                onClick={() => void handleLearnWithExaminer()}
-                disabled={
-                  completing ||
-                  sending ||
-                  sessionLocked ||
-                  (!impression.trim() && !management.trim())
-                }
-                className="btn-secondary px-6 min-w-[220px] flex items-center justify-center gap-2 disabled:opacity-50"
-                title={t("learnWithExaminerHint")}
-              >
-                <GraduationCap size={18} />
-                {t("learnWithExaminer")}
-              </button>
-            </div>
-            <p className="text-xs text-slate-400 text-center max-w-md">
-              {t("learnWithExaminerHint")}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="shrink-0 min-h-0 max-h-[55vh] sm:shrink sm:min-h-[280px] sm:max-h-[45vh] sm:flex-1 card overflow-hidden flex flex-col border-t border-slate-200 dark:border-slate-800 rounded-none sm:rounded-t-2xl mx-0 sm:mx-4 sm:mb-4">
-        <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
-          <div className="px-4 py-3 flex items-center justify-between gap-3">
-            <h3 className="text-xs font-bold text-slate-400 uppercase">
-              {t("clinicalExaminer")}
-            </h3>
-            <div className="flex items-center gap-2 shrink-0">
-              <SpeechLanguageToggle
-                value={lang}
-                onChange={setLang}
-                disabled={sending || isLiveCall || sessionLocked}
-                labels={{
-                  auto: t('speechLangAuto'),
-                  ar: t('speechLangAr'),
-                  en: t('speechLangEn'),
-                }}
-              />
-              <LiveCallButton
-                isLiveCall={isLiveCall}
-                isLiveCallBusy={isLiveCallBusy}
-                isLiveCallSupported={isLiveCallSupported}
-                onToggleLiveCall={onToggleLiveCall}
-                liveCallLabel={liveCallLabel}
-                endLiveCallLabel={endLiveCallLabel}
-                disabled={sending || sessionLocked}
-              />
-            </div>
-          </div>
+    <div className="flex-1 min-h-0 flex flex-col overflow-y-auto bg-slate-50 dark:bg-slate-950">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 md:py-12 w-full">
+        <div className="flex justify-center mb-6">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 text-primary text-[11px] font-semibold tracking-wider uppercase bg-white dark:bg-slate-900 shadow-sm">
+            <Stethoscope size={14} />
+            {t("diagnosticFinalizationStation")}
+          </span>
         </div>
 
-        <ChatScrollArea
-          endRef={chatEndRef}
-          scrollDeps={[messages, sending]}
-          forceScroll={sending}
-          empty={messages.length === 0}
-          className="bg-white dark:bg-slate-900 min-h-[120px]"
-          emptyContent={
-            <p className="text-sm text-slate-400 text-center py-4">
-              {t("askExaminer")}
-            </p>
-          }
-        >
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.role === "STUDENT" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap ${msg.role === "STUDENT" ? "bg-primary text-white" : "bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-800 text-amber-950 dark:text-amber-100"}`}
-              >
-                <span dir="auto">{msg.content}</span>
-              </div>
-            </div>
-          ))}
-          {sending && <ChatTypingIndicator label={t("examinerTyping")} />}
-        </ChatScrollArea>
+        <h1 className="text-3xl md:text-4xl font-bold text-center text-slate-900 dark:text-white mb-3">
+          {t("clinicalFormulation")}
+        </h1>
+        <p className="text-center text-slate-500 dark:text-slate-400 max-w-2xl mx-auto mb-10 text-sm md:text-base leading-relaxed">
+          {t("clinicalFormulationDesc")}
+        </p>
 
-        <div className="shrink-0 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
-          {(isLiveCall || micError) && (
-            <LiveCallMicStatus
-              isLiveCall={isLiveCall}
-              isBusy={isLiveCallBusy}
-              isMicListening={isLiveCallMicListening}
-              isSpeaking={isLiveCallSpeaking}
-              error={isLiveCall ? micError : undefined}
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-6">
+            <div className="flex items-center gap-2 mb-4 text-teal-600 dark:text-teal-400">
+              <Search size={18} />
+              <span className="text-xs font-bold tracking-wider uppercase">
+                {t("diagnosticImpression")}
+              </span>
+            </div>
+            <textarea
+              className="w-full min-h-55 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 p-4 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 resize-y focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+              placeholder={t("diagnosticImpressionPlaceholder")}
+              value={impression}
+              onChange={(e) => setImpression(e.target.value)}
+              disabled={sending || sessionLocked}
             />
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-6">
+            <div className="flex items-center gap-2 mb-4 text-emerald-600 dark:text-emerald-400">
+              <ClipboardCheck size={18} />
+              <span className="text-xs font-bold tracking-wider uppercase">
+                {t("initialManagement")}
+              </span>
+            </div>
+            <textarea
+              className="w-full min-h-55 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 p-4 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 resize-y focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              placeholder={t("initialManagementPlaceholder")}
+              value={management}
+              onChange={(e) => setManagement(e.target.value)}
+              disabled={sending || sessionLocked}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col items-center gap-3 mb-6">
+          {(chatError || completeError) && (
+            <p className="text-sm text-red-500 text-center">{chatError || completeError}</p>
           )}
-          <SimulationChatInput
-            input={input}
-            setInput={setInput}
-            onSend={() => sendMessage()}
-            sending={sending}
-            placeholder={t("askExaminer")}
-            chatError={chatError}
-            isListening={isListening}
-            isProcessing={isProcessing}
-            isMicSupported={isMicSupported}
-            onToggleMic={onToggleMic}
-            micListeningLabel={t("micListening")}
-            micNotSupportedLabel={t("micNotSupported")}
-            micProcessingLabel={t("micProcessing")}
-            micError={micError}
-            disabled={isLiveCall || sessionLocked}
-            isLiveCall={isLiveCall}
-          />
+          <div className="flex items-center justify-center">
+            <button
+              onClick={() => void handleCompleteAndEvaluate()}
+              disabled={completing || sending || sessionLocked}
+              className="btn-primary px-10 py-3 text-base min-w-55 flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+            >
+              {completing || sending ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  {completing ? t("generatingFeedback") : t("examinerTyping")}
+                </>
+              ) : (
+                t("completeSession")
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -2322,6 +2174,8 @@ function ClinicalStationPanel({
   t: (k: string) => string;
   compact?: boolean;
 }) {
+  const [selectedImg, setSelectedImg] = useState<{ url: string; caption?: string; mediaType?: string } | null>(null);
+
   const stationImages = examImages.filter(
     (img) => !img.maneuver || img.maneuver === maneuverId,
   );
@@ -2342,61 +2196,137 @@ function ClinicalStationPanel({
         ];
 
   return (
-    <div
-      className={`bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 ${
-        compact ? 'p-2 space-y-2' : 'p-4 space-y-4'
-      }`}
-    >
-      {!compact && (
-        <p className="text-xs font-bold text-slate-500 uppercase">
-          {t("patientSlideGallery")}
-        </p>
-      )}
+    <>
+      <div
+        className={`bg-white dark:bg-slate-900 ${
+          compact
+            ? 'p-0 space-y-1.5'
+            : 'rounded-xl border border-slate-200 dark:border-slate-800 p-4 space-y-4'
+        }`}
+      >
+        {!compact && (
+          <p className="text-xs font-bold text-slate-500 uppercase">
+            {t("patientSlideGallery")}
+          </p>
+        )}
 
-      <div className="grid gap-3">
-        {displayImages.map((img, i) => {
-          const mediaType = inferMediaType(img);
-          const caption = (isAr ? img.captionAr : img.caption) || img.caption || img.captionAr;
-          return (
-          <div
-            key={`${img.url}-${i}`}
-            className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-950"
-          >
-            {mediaType === 'video' ? (
-              <video
-                src={img.url}
-                controls
-                playsInline
-                className={`w-full object-contain mx-auto bg-black ${compact ? 'max-h-36' : 'max-h-80'}`}
+        <div className={compact ? 'grid grid-cols-1 gap-2' : 'grid gap-3'}>
+          {displayImages.map((img, i) => {
+            const mediaType = inferMediaType(img);
+            const caption = (isAr ? img.captionAr : img.caption) || img.caption || img.captionAr;
+            return (
+              <div
+                key={`${img.url}-${i}`}
+                className={`relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-950 group cursor-pointer transition-all hover:ring-2 hover:ring-primary/50 ${
+                  compact ? 'w-full max-h-24 sm:max-h-28 flex items-center justify-center' : ''
+                }`}
+                onClick={() => setSelectedImg({ url: img.url, caption, mediaType })}
               >
-                <track kind="captions" />
-              </video>
-            ) : mediaType === 'audio' ? (
-              <div className={`px-4 bg-slate-900 ${compact ? 'py-3' : 'py-6'}`}>
-                <audio src={img.url} controls className="w-full" />
+                {mediaType === 'video' ? (
+                  <video
+                    src={img.url}
+                    controls
+                    controlsList="nodownload"
+                    onContextMenu={(e) => e.preventDefault()}
+                    playsInline
+                    className={`w-full object-contain mx-auto bg-black ${compact ? 'max-h-24 sm:max-h-28' : 'max-h-80'}`}
+                  >
+                    <track kind="captions" />
+                  </video>
+                ) : mediaType === 'audio' ? (
+                  <div className={`px-4 bg-slate-900 w-full ${compact ? 'py-2' : 'py-6'}`}>
+                    <audio
+                      src={img.url}
+                      controls
+                      controlsList="nodownload"
+                      onContextMenu={(e) => e.preventDefault()}
+                      className="w-full"
+                    />
+                  </div>
+                ) : (
+                  <img
+                    src={img.url}
+                    alt={caption || t("clinicalStation")}
+                    className={`w-full object-contain mx-auto ${compact ? 'max-h-24 sm:max-h-28' : 'max-h-80'}`}
+                  />
+                )}
+                {caption && (
+                  <div
+                    className={`w-full bg-slate-950/80 backdrop-blur-sm text-slate-100 font-medium leading-tight ${
+                      compact
+                        ? 'absolute bottom-0 inset-x-0 px-2 py-0.5 text-[10px] truncate'
+                        : 'px-3 py-1.5 text-xs bg-slate-900/90'
+                    }`}
+                    dir="auto"
+                  >
+                    {caption}
+                  </div>
+                )}
+                {/* Zoom badge */}
+                <div className="absolute top-1.5 right-1.5 p-1 rounded-md bg-black/60 text-white/80 opacity-70 group-hover:opacity-100 transition-opacity">
+                  <Maximize2 size={12} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Lightbox / Zoom Modal */}
+      {selectedImg && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-4"
+          onClick={() => setSelectedImg(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setSelectedImg(null)}
+            className="absolute top-4 right-4 p-2.5 rounded-full bg-slate-800/80 hover:bg-slate-700 text-white transition-colors"
+            title="Close"
+          >
+            <X size={20} />
+          </button>
+          <div
+            className="max-w-3xl max-h-[85vh] flex flex-col items-center justify-center overflow-hidden rounded-xl bg-slate-950 border border-slate-800"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {selectedImg.mediaType === 'video' ? (
+              <video
+                src={selectedImg.url}
+                controls
+                controlsList="nodownload"
+                onContextMenu={(e) => e.preventDefault()}
+                autoPlay
+                playsInline
+                className="max-h-[75vh] w-auto max-w-full object-contain"
+              />
+            ) : selectedImg.mediaType === 'audio' ? (
+              <div className="p-8 w-full min-w-70">
+                <audio
+                  src={selectedImg.url}
+                  controls
+                  controlsList="nodownload"
+                  onContextMenu={(e) => e.preventDefault()}
+                  autoPlay
+                  className="w-full"
+                />
               </div>
             ) : (
               <img
-                src={img.url}
-                alt={caption || t("clinicalStation")}
-                className={`w-full object-contain mx-auto ${compact ? 'max-h-36' : 'max-h-80'}`}
+                src={selectedImg.url}
+                alt={selectedImg.caption || t("clinicalStation")}
+                className="max-h-[75vh] w-auto max-w-full object-contain"
               />
             )}
-            {caption && (
-              <div
-                className={`w-full bg-slate-900/90 text-slate-100 font-medium leading-snug ${
-                  compact ? 'px-2.5 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'
-                }`}
-                dir="auto"
-              >
-                {caption}
+            {selectedImg.caption && (
+              <div className="w-full p-3 bg-slate-900 text-slate-200 text-center text-sm font-medium" dir="auto">
+                {selectedImg.caption}
               </div>
             )}
           </div>
-          );
-        })}
-      </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -2693,16 +2623,69 @@ function FeedbackView({
   onRegenerate?: () => void | Promise<void>;
   regenerating?: boolean;
 }) {
-  const sections = [
-    { key: "strengths", label: t("strengths") },
-    { key: "weaknesses", label: t("weaknesses") },
-    { key: "missedQuestions", label: t("missedQuestions") },
-    { key: "clinicalErrors", label: t("clinicalErrors") },
-    { key: "recommendations", label: t("recommendations") },
-    { key: "idealApproach", label: t("idealApproach") },
-  ];
-
   const [downloadingReport, setDownloadingReport] = useState(false);
+
+  const totalScore = Number(result.totalScore ?? 0);
+  const commScore = Number(result.communicationScore ?? 0);
+  const histScore = Number(result.historyTakingScore ?? 0);
+  const clinScore = Number(result.clinicalReasonScore ?? 0);
+  const orgScore = Number(result.organizationScore ?? 0);
+  const closScore = Number(result.closingScore ?? 0);
+
+  const dateStr = session.startedAt
+    ? new Date(session.startedAt).toLocaleString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : new Date().toLocaleString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+  const feedbackSections = [
+    {
+      key: 'strengths',
+      title: 'STRENGTHS',
+      icon: <Star size={18} className="text-amber-300" />,
+      content: String(result.strengths ?? ''),
+    },
+    {
+      key: 'weaknesses',
+      title: 'WEAKNESSES',
+      icon: <AlertTriangle size={18} className="text-amber-400" />,
+      content: String(result.weaknesses ?? ''),
+    },
+    {
+      key: 'missedQuestions',
+      title: 'MISSED QUESTIONS',
+      icon: <HelpCircle size={18} className="text-sky-300" />,
+      content: String(result.missedQuestions ?? ''),
+    },
+    {
+      key: 'clinicalErrors',
+      title: 'CLINICAL ERRORS',
+      icon: <XCircle size={18} className="text-rose-400" />,
+      content: String(result.clinicalErrors ?? ''),
+    },
+    {
+      key: 'recommendations',
+      title: 'RECOMMENDATIONS',
+      icon: <Lightbulb size={18} className="text-yellow-300" />,
+      content: String(result.recommendations ?? ''),
+    },
+    {
+      key: 'idealApproach',
+      title: 'IDEAL APPROACH',
+      icon: <Target size={18} className="text-emerald-300" />,
+      content: String(result.idealApproach ?? ''),
+    },
+  ];
 
   const downloadReport = async () => {
     setDownloadingReport(true);
@@ -2742,26 +2725,56 @@ function FeedbackView({
     }
   };
 
+  const formatContentPoints = (rawText: string) => {
+    if (!rawText.trim()) return <p className="text-slate-400 italic">None noted.</p>;
+    const lines = rawText
+      .split(/\n+/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+
+    if (lines.length <= 1 && !rawText.includes('•') && !rawText.includes('- ')) {
+      return <p className="whitespace-pre-wrap">{rawText}</p>;
+    }
+
+    return (
+      <ul className="space-y-1.5">
+        {lines.map((line, idx) => {
+          const cleanLine = line.replace(/^[•\-\*]\s*/, '').trim();
+          return (
+            <li key={idx} className="flex items-start gap-2">
+              <span className="text-slate-400 font-bold leading-tight select-none">•</span>
+              <span className="flex-1">{cleanLine}</span>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="card p-6 text-center">
-        <p className="text-xs text-slate-500 mb-2">{t("feedbackGeneratedFromChat")}</p>
-        <p className="text-sm text-slate-500">{t("totalScore")}</p>
-        <p className="text-5xl font-bold text-primary">
-          {result.totalScore as number}%
-        </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-4">
+    <div className="space-y-6 max-w-4xl mx-auto pb-12">
+      {/* Top Action Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div>
+          <h2 className="text-base font-bold text-slate-800 dark:text-white">
+            {t("osceEvaluationReport")}
+          </h2>
+          <p className="text-xs text-slate-500">
+            {t("feedbackGeneratedFromChat")}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => void downloadReport()}
             disabled={downloadingReport}
-            className="btn-secondary inline-flex items-center gap-2 min-w-[200px] justify-center"
+            className="btn-primary inline-flex items-center gap-2 px-5 py-2 text-sm shadow-md shadow-primary/20"
           >
             {downloadingReport ? (
               <Loader2 size={16} className="animate-spin" />
             ) : (
               <Download size={16} />
-            )}{" "}
+            )}
             {t("downloadReport")}
           </button>
           {onRegenerate && (
@@ -2769,64 +2782,249 @@ function FeedbackView({
               type="button"
               onClick={() => void onRegenerate()}
               disabled={regenerating}
-              className="btn-secondary inline-flex items-center gap-2 min-w-[200px] justify-center"
+              className="btn-secondary inline-flex items-center gap-2 px-4 py-2 text-sm"
             >
-              {regenerating ? t("generatingFeedback") : t("regenerateReport")}
+              {regenerating ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                t("regenerateReport")
+              )}
             </button>
           )}
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-6">
-          {(
-            [
-              ["communicationScore", "scoreCommunication"],
-              ["historyTakingScore", "scoreHistory"],
-              ["clinicalReasonScore", "scoreClinicalReason"],
-              ["organizationScore", "scoreOrganization"],
-              ["closingScore", "scoreClosing"],
-            ] as const
-          ).map(([key, labelKey]) => (
+      </div>
+
+      {/* Main Certificate / Report Sheet */}
+      <div className="bg-[#fcfbf7] dark:bg-slate-900 border-2 border-[#e8e4d8] dark:border-slate-800 rounded-3xl p-6 sm:p-10 shadow-xl relative overflow-hidden text-slate-800 dark:text-slate-100">
+        {/* Certificate Header */}
+        <div className="flex items-start justify-between gap-4 pb-4 border-b border-[#e8e4d8] dark:border-slate-800">
+          <div>
+            <span className="text-3xl sm:text-4xl font-extrabold text-[#12242b] dark:text-emerald-400 tracking-tight font-sans">
+              synoza
+            </span>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5 tracking-wide">
+              OSCE Evaluation Certificate
+            </p>
+          </div>
+          <div className="text-right">
+            <span className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 tracking-wide">
+              Official Evaluation Report
+            </span>
+            <div className="w-24 sm:w-28 h-0.5 bg-[#c25e4a] ml-auto mt-1 rounded-full" />
+          </div>
+        </div>
+
+        {/* Station & Patient Meta Card */}
+        <div className="bg-white/90 dark:bg-slate-800/80 rounded-2xl border border-[#ece7dc] dark:border-slate-700/80 p-5 mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-center shadow-xs">
+          <div className="space-y-3">
+            <div>
+              <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">STATION</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight mt-0.5">
+                {session.case.titleEn}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">DATE</p>
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-0.5">
+                {dateStr}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3 md:border-l md:border-slate-200 dark:md:border-slate-700 md:pl-5">
+            <div>
+              <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">PATIENT</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight mt-0.5">
+                {session.case.patientName}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">SESSION ID</p>
+              <p className="text-xs font-mono font-medium text-slate-600 dark:text-slate-400 mt-0.5">
+                {session.id.slice(0, 12)}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-start md:justify-end">
+            <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-full border-2 border-[#769b82]/50 bg-[#e9f1eb]/80 dark:bg-emerald-950/40 p-1 flex items-center justify-center shrink-0 shadow-inner">
+              <div className="w-full h-full rounded-full border border-dashed border-[#769b82]/70 flex flex-col items-center justify-center text-center p-1">
+                <span className="text-[8px] text-[#4d7359] dark:text-emerald-400 leading-none">✦</span>
+                <span className="text-[10px] font-extrabold tracking-wider text-[#2d5239] dark:text-emerald-300 leading-tight uppercase">SYNOZA</span>
+                <span className="text-[7px] font-bold tracking-wide text-[#4d7359] dark:text-emerald-400 leading-none uppercase">CERTIFIED</span>
+                <span className="text-[9px] font-black tracking-widest text-[#2d5239] dark:text-emerald-300 leading-tight uppercase">OSCE</span>
+                <span className="text-[8px] text-[#4d7359] dark:text-emerald-400 leading-none">✦</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Scores Card */}
+        <div className="bg-[#faf5ec] dark:bg-slate-800/70 rounded-2xl border border-[#ebe2ce] dark:border-slate-700/80 p-5 mt-5 grid grid-cols-1 sm:grid-cols-6 gap-4 items-center shadow-xs">
+          <div className="sm:col-span-1 text-center sm:text-left sm:border-r sm:border-[#ebe2ce] dark:sm:border-slate-700 sm:pr-4">
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">TOTAL SCORE</p>
+            <p className="text-4xl sm:text-5xl font-black text-[#1b4332] dark:text-emerald-400 mt-1 tracking-tight">
+              {totalScore}%
+            </p>
+          </div>
+
+          <div className="sm:col-span-5 grid grid-cols-5 gap-2 text-center">
+            <div className="flex flex-col items-center justify-center p-1">
+              <div className="w-8 h-8 rounded-lg bg-white/80 dark:bg-slate-700/80 flex items-center justify-center mb-1 text-slate-600 dark:text-slate-300 shadow-2xs">
+                <MessageSquare size={16} />
+              </div>
+              <p className="text-[9px] sm:text-[10px] font-medium text-slate-600 dark:text-slate-300 leading-tight">
+                Communication
+              </p>
+              <div className="w-6 h-0.5 bg-slate-300 dark:bg-slate-600 my-1 rounded-full" />
+              <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-white">
+                {commScore}%
+              </p>
+            </div>
+
+            <div className="flex flex-col items-center justify-center p-1">
+              <div className="w-8 h-8 rounded-lg bg-white/80 dark:bg-slate-700/80 flex items-center justify-center mb-1 text-slate-600 dark:text-slate-300 shadow-2xs">
+                <FileText size={16} />
+              </div>
+              <p className="text-[9px] sm:text-[10px] font-medium text-slate-600 dark:text-slate-300 leading-tight">
+                History
+              </p>
+              <div className="w-6 h-0.5 bg-slate-300 dark:bg-slate-600 my-1 rounded-full" />
+              <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-white">
+                {histScore}%
+              </p>
+            </div>
+
+            <div className="flex flex-col items-center justify-center p-1">
+              <div className="w-8 h-8 rounded-lg bg-white/80 dark:bg-slate-700/80 flex items-center justify-center mb-1 text-slate-600 dark:text-slate-300 shadow-2xs">
+                <Brain size={16} />
+              </div>
+              <p className="text-[9px] sm:text-[10px] font-medium text-slate-600 dark:text-slate-300 leading-tight">
+                Clinical Reasoning
+              </p>
+              <div className="w-6 h-0.5 bg-slate-300 dark:bg-slate-600 my-1 rounded-full" />
+              <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-white">
+                {clinScore}%
+              </p>
+            </div>
+
+            <div className="flex flex-col items-center justify-center p-1">
+              <div className="w-8 h-8 rounded-lg bg-white/80 dark:bg-slate-700/80 flex items-center justify-center mb-1 text-slate-600 dark:text-slate-300 shadow-2xs">
+                <Layers size={16} />
+              </div>
+              <p className="text-[9px] sm:text-[10px] font-medium text-slate-600 dark:text-slate-300 leading-tight">
+                Organization
+              </p>
+              <div className="w-6 h-0.5 bg-slate-300 dark:bg-slate-600 my-1 rounded-full" />
+              <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-white">
+                {orgScore}%
+              </p>
+            </div>
+
+            <div className="flex flex-col items-center justify-center p-1">
+              <div className="w-8 h-8 rounded-lg bg-white/80 dark:bg-slate-700/80 flex items-center justify-center mb-1 text-slate-600 dark:text-slate-300 shadow-2xs">
+                <Flag size={16} />
+              </div>
+              <p className="text-[9px] sm:text-[10px] font-medium text-slate-600 dark:text-slate-300 leading-tight">
+                Closing
+              </p>
+              <div className="w-6 h-0.5 bg-slate-300 dark:bg-slate-600 my-1 rounded-full" />
+              <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-white">
+                {closScore}%
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 6 Feedback Section Cards */}
+        <div className="space-y-4 mt-6">
+          {feedbackSections.map((section) => (
             <div
-              key={key}
-              className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3"
+              key={section.key}
+              className="bg-white/90 dark:bg-slate-800/80 rounded-2xl border border-[#ece7dc] dark:border-slate-700/80 p-4 sm:p-5 flex flex-col sm:flex-row items-start gap-4 shadow-xs"
             >
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {t(labelKey)}
-              </p>
-              <p className="font-bold text-slate-900 dark:text-white">
-                {result[key] as number}%
-              </p>
+              <div className="flex items-center gap-3 sm:flex-col sm:items-start sm:w-44 shrink-0">
+                <div className="w-10 h-10 rounded-full bg-[#122b34] text-white flex items-center justify-center shrink-0 shadow-sm">
+                  {section.icon}
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">
+                    {section.title}
+                  </h4>
+                  <div className="w-10 h-0.5 bg-slate-200 dark:bg-slate-700 mt-1 rounded-full hidden sm:block" />
+                </div>
+              </div>
+
+              <div
+                className="w-full sm:border-l sm:border-slate-200 dark:sm:border-slate-700 sm:pl-5 flex-1 text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed"
+                dir="ltr"
+              >
+                {formatContentPoints(section.content)}
+              </div>
             </div>
           ))}
         </div>
-      </div>
-      {sections.map(({ key, label }) => (
-        <div key={key} className="card p-5">
-          <h4 className="font-semibold mb-2 text-slate-900 dark:text-white">
-            {label}
-          </h4>
-          <p
-            className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed"
-            dir="ltr"
-            lang="en"
-          >
-            {result[key] as string}
-          </p>
-        </div>
-      ))}
-      {Boolean(result.fullReport) && (
-        <div className="card p-5">
-          <h4 className="font-semibold mb-2 text-slate-900 dark:text-white">
-            {t("fullReport")}
-          </h4>
-          <div
-            className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap prose prose-sm dark:prose-invert max-w-none leading-relaxed"
-            dir="ltr"
-            lang="en"
-          >
-            {(result.fullReport as string).replace(/^## /gm, "### ")}
+
+        {/* Certificate Signature & Seal Footer */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 items-center pt-8 mt-8 border-t border-[#e8e4d8] dark:border-slate-800">
+          {/* Doctor Signature */}
+          <div className="text-center sm:text-left">
+            <div className="h-10 flex items-center justify-center sm:justify-start">
+              <svg className="h-8 w-32 text-slate-800 dark:text-slate-200" viewBox="0 0 160 40" fill="none">
+                <path
+                  d="M10 28 C 25 10, 35 35, 45 15 C 55 5, 50 30, 65 22 C 80 14, 75 32, 90 20 C 105 10, 110 30, 130 18 C 140 12, 145 25, 155 22"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <div className="w-36 h-0.5 bg-slate-300 dark:bg-slate-600 my-1 mx-auto sm:mx-0" />
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+              Dr. Mahmoud Nasser
+            </p>
+          </div>
+
+          {/* Slogan */}
+          <div className="text-center flex flex-col items-center justify-center">
+            <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center mb-1">
+              <Sparkles size={14} />
+            </div>
+            <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+              Building Clinical Connections
+            </p>
+          </div>
+
+          {/* Embossed Platform Stamp */}
+          <div className="flex justify-center sm:justify-end">
+            <div className="w-18 h-18 rounded-full border-2 border-emerald-600/40 bg-emerald-50/60 dark:bg-emerald-950/40 p-1 flex items-center justify-center shadow-inner">
+              <div className="w-full h-full rounded-full border border-dashed border-emerald-600/60 flex flex-col items-center justify-center text-center p-1 text-[7px] font-bold text-emerald-800 dark:text-emerald-300 uppercase leading-tight">
+                <span>SYNOZA PLATFORM</span>
+                <span className="text-[10px] my-0.5">✦</span>
+                <span>OFFICIAL DOCUMENT</span>
+              </div>
+            </div>
           </div>
         </div>
-      )}
+
+        {/* Bottom Dark Security Ribbon */}
+        <div className="bg-[#12242b] -mx-6 -mb-6 sm:-mx-10 sm:-mb-10 mt-8 px-6 py-3 flex flex-wrap items-center justify-between gap-2 text-[10px] sm:text-[11px] font-medium text-slate-300 tracking-wider">
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck size={14} className="text-emerald-400" />
+            <span>SECURE · VERIFIED · TRUSTED</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-slate-400">
+            <Globe size={14} />
+            <span>WWW.SYNOZAA.COM</span>
+          </div>
+          <div className="flex items-center gap-1 text-slate-400">
+            <QrCode size={14} />
+          </div>
+        </div>
+      </div>
+
+      {/* XP & Rank Progress Breakdown */}
       <XpBreakdownSection result={result} rankProgress={rankProgress} isAr={isAr} />
     </div>
   );

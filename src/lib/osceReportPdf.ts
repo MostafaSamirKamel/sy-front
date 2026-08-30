@@ -222,61 +222,60 @@ function ensureSpace(doc: jsPDF, y: number, needed: number): number {
   return y;
 }
 
+function drawPageBackground(doc: jsPDF) {
+  doc.setFillColor(252, 251, 247);
+  doc.rect(0, 0, PAGE_W, PAGE_H, 'F');
+  // Outer certificate border
+  doc.setDrawColor(232, 228, 216);
+  doc.setLineWidth(0.6);
+  doc.roundedRect(MARGIN - 4, MARGIN - 4, CONTENT_W + 8, PAGE_H - (MARGIN * 2) + 8, 4, 4, 'S');
+}
+
 function drawHeader(
   doc: jsPDF,
   labels: OsceReportLabels,
   logo: PreparedReportLogo | null,
   isAr: boolean,
 ): number {
+  drawPageBackground(doc);
   const y = MARGIN + 4;
   const x = textX(isAr);
   let headerBottom = y + 6;
-  let logoAdded = false;
 
-  if (logo) {
-    try {
-      const logoX = isAr ? PAGE_W - MARGIN - logo.widthMm : MARGIN;
-      const logoY = y + 1;
-      doc.addImage(logo.dataUrl, 'PNG', logoX, logoY, logo.widthMm, logo.heightMm);
-      logoAdded = true;
-      headerBottom = logoY + logo.heightMm;
+  // synoza logotype
+  doc.setFont('Cairo', 'bold');
+  doc.setFontSize(22);
+  doc.setTextColor(18, 36, 43);
+  doc.text('synoza', x, y + 4, { align: isAr ? 'right' : 'left' });
+  headerBottom = y + 6;
 
-      doc.setFont('Cairo', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139);
-      doc.text(prepareText(labels.officialReport, isAr), isAr ? MARGIN : PAGE_W - MARGIN, logoY + logo.heightMm / 2 + 1, {
-        align: isAr ? 'left' : 'right',
-      });
-    } catch {
-      logoAdded = false;
-    }
-  }
-
-  if (!logoAdded) {
-    doc.setFont('Cairo', 'bold');
-    doc.setFontSize(18);
-    doc.setTextColor(15, 118, 110);
-    doc.text(prepareText(labels.platformName, isAr), x, y + 6, { align: isAr ? 'right' : 'left' });
-    headerBottom = y + 10;
-
-    doc.setFont('Cairo', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(100, 116, 139);
-    doc.text(prepareText(labels.officialReport, isAr), isAr ? MARGIN : PAGE_W - MARGIN, y + 5, {
-      align: isAr ? 'left' : 'right',
-    });
-  }
-
+  // Subtitle
   doc.setFont('Cairo', 'normal');
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setTextColor(100, 116, 139);
-  doc.text(prepareText(labels.certificateTitle, isAr), x, headerBottom + 5, { align: isAr ? 'right' : 'left' });
+  doc.text('OSCE Evaluation Certificate', x, headerBottom + 3, { align: isAr ? 'right' : 'left' });
 
-  const lineY = headerBottom + 11;
-  doc.setDrawColor(20, 184, 166);
-  doc.setLineWidth(0.8);
-  doc.line(MARGIN, lineY, PAGE_W - MARGIN, lineY);
-  return lineY + 6;
+  // Official Evaluation Report on the right
+  const rightX = isAr ? MARGIN : PAGE_W - MARGIN;
+  doc.setFont('Cairo', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(51, 65, 85);
+  doc.text(prepareText(labels.officialReport || 'Official Evaluation Report', isAr), rightX, y + 2, {
+    align: isAr ? 'left' : 'right',
+  });
+
+  // Terracotta accent line under Official Evaluation Report
+  const lineW = 32;
+  const lineStartX = isAr ? MARGIN : PAGE_W - MARGIN - lineW;
+  doc.setDrawColor(194, 94, 74);
+  doc.setLineWidth(1.2);
+  doc.line(lineStartX, y + 5, lineStartX + lineW, y + 5);
+
+  const dividerY = headerBottom + 8;
+  doc.setDrawColor(232, 228, 216);
+  doc.setLineWidth(0.4);
+  doc.line(MARGIN, dividerY, PAGE_W - MARGIN, dividerY);
+  return dividerY + 5;
 }
 
 function drawMeta(
@@ -286,36 +285,71 @@ function drawMeta(
   y: number,
   isAr: boolean,
 ): number {
-  const items = [
-    [data.labels.station, data.stationTitle],
-    [data.labels.patient, data.patientName],
-    [data.labels.date, dateStr],
-    [data.labels.sessionId, data.sessionId.slice(0, 12)],
-  ] as const;
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(236, 231, 220);
+  doc.setLineWidth(0.4);
+  doc.roundedRect(MARGIN, y, CONTENT_W, 24, 3, 3, 'FD');
 
-  doc.setFillColor(248, 250, 252);
-  doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(MARGIN, y, CONTENT_W, 22, 3, 3, 'FD');
+  const colW = (CONTENT_W - 32) / 2;
 
-  const colW = CONTENT_W / 2;
-  items.forEach(([label, value], i) => {
-    const col = i % 2;
-    const row = Math.floor(i / 2);
-    const cellX = isAr
-      ? PAGE_W - MARGIN - col * colW - 4
-      : MARGIN + col * colW + 4;
-    const cellY = y + 6 + row * 10;
+  // Station
+  doc.setFont('Cairo', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text('STATION', MARGIN + 4, y + 5);
+  doc.setFontSize(8.5);
+  doc.setTextColor(18, 36, 43);
+  doc.text(data.stationTitle.slice(0, 36), MARGIN + 4, y + 10);
 
-    doc.setFont('Cairo', 'normal');
-    doc.setFontSize(7);
-    doc.setTextColor(100, 116, 139);
-    doc.text(prepareText(label, isAr), cellX, cellY, { align: isAr ? 'right' : 'left' });
+  // Date
+  doc.setFont('Cairo', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text('DATE', MARGIN + 4, y + 16);
+  doc.setFont('Cairo', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(51, 65, 85);
+  doc.text(dateStr, MARGIN + 4, y + 20.5);
 
-    doc.setFont('Cairo', 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(15, 23, 42);
-    doc.text(prepareText(value, isAr), cellX, cellY + 4.5, { align: isAr ? 'right' : 'left' });
-  });
+  // Divider between col 1 & 2
+  doc.setDrawColor(241, 245, 249);
+  doc.line(MARGIN + colW + 4, y + 3, MARGIN + colW + 4, y + 21);
+
+  // Patient
+  doc.setFont('Cairo', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text('PATIENT', MARGIN + colW + 8, y + 5);
+  doc.setFontSize(8.5);
+  doc.setTextColor(18, 36, 43);
+  doc.text(data.patientName.slice(0, 32), MARGIN + colW + 8, y + 10);
+
+  // Session ID
+  doc.setFont('Cairo', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text('SESSION ID', MARGIN + colW + 8, y + 16);
+  doc.setFont('Cairo', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text(data.sessionId.slice(0, 12), MARGIN + colW + 8, y + 20.5);
+
+  // Seal Badge on Right
+  const sealCx = PAGE_W - MARGIN - 14;
+  const sealCy = y + 12;
+  doc.setFillColor(233, 241, 235);
+  doc.setDrawColor(118, 155, 130);
+  doc.setLineWidth(0.6);
+  doc.circle(sealCx, sealCy, 9, 'FD');
+
+  doc.setFont('Cairo', 'bold');
+  doc.setFontSize(5.5);
+  doc.setTextColor(45, 82, 57);
+  doc.text('SYNOZA', sealCx, sealCy - 2.5, { align: 'center' });
+  doc.setFontSize(4.5);
+  doc.text('CERTIFIED', sealCx, sealCy + 0.5, { align: 'center' });
+  doc.setFontSize(5);
+  doc.text('OSCE', sealCx, sealCy + 3.5, { align: 'center' });
 
   return y + 28;
 }
@@ -323,51 +357,54 @@ function drawMeta(
 function drawScores(doc: jsPDF, data: OsceReportData, y: number, isAr: boolean): number {
   const total = Number(data.result.totalScore ?? 0);
   const scores = [
-    [data.labels.scoreCommunication, Number(data.result.communicationScore ?? 0)],
-    [data.labels.scoreHistory, Number(data.result.historyTakingScore ?? 0)],
-    [data.labels.scoreClinicalReason, Number(data.result.clinicalReasonScore ?? 0)],
-    [data.labels.scoreOrganization, Number(data.result.organizationScore ?? 0)],
-    [data.labels.scoreClosing, Number(data.result.closingScore ?? 0)],
+    ['Communication', Number(data.result.communicationScore ?? 0)],
+    ['History', Number(data.result.historyTakingScore ?? 0)],
+    ['Clinical Reasoning', Number(data.result.clinicalReasonScore ?? 0)],
+    ['Organization', Number(data.result.organizationScore ?? 0)],
+    ['Closing', Number(data.result.closingScore ?? 0)],
   ] as const;
 
-  doc.setFillColor(240, 253, 250);
-  doc.setDrawColor(153, 246, 228);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(MARGIN, y, CONTENT_W, 32, 4, 4, 'FD');
+  doc.setFillColor(250, 245, 236);
+  doc.setDrawColor(235, 226, 206);
+  doc.setLineWidth(0.4);
+  doc.roundedRect(MARGIN, y, CONTENT_W, 26, 3, 3, 'FD');
 
-  const totalX = isAr ? PAGE_W - MARGIN - 8 : MARGIN + 8;
-  doc.setFont('Cairo', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(71, 85, 105);
-  doc.text(prepareText(data.labels.totalScore, isAr), totalX, y + 10, { align: isAr ? 'right' : 'left' });
+  // Total Score on Left
+  doc.setFont('Cairo', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(100, 116, 139);
+  doc.text('TOTAL SCORE', MARGIN + 6, y + 8);
 
   doc.setFont('Cairo', 'bold');
-  doc.setFontSize(28);
-  doc.setTextColor(...scoreColor(total));
-  doc.text(`${total}%`, totalX, y + 22, { align: isAr ? 'right' : 'left' });
+  doc.setFontSize(22);
+  doc.setTextColor(27, 67, 50);
+  doc.text(`${total}%`, MARGIN + 6, y + 19);
 
-  const gridW = 118;
-  const gridX = isAr ? MARGIN + 4 : PAGE_W - MARGIN - gridW - 4;
-  const cellW = gridW / 5;
+  // Vertical divider
+  doc.setDrawColor(235, 226, 206);
+  doc.line(MARGIN + 36, y + 4, MARGIN + 36, y + 22);
+
+  // 5 Category columns
+  const gridStartX = MARGIN + 40;
+  const gridW = CONTENT_W - 44;
+  const colW = gridW / 5;
+
   scores.forEach(([label, value], i) => {
-    const cx = gridX + i * cellW + 1;
-    doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(226, 232, 240);
-    doc.roundedRect(cx, y + 6, cellW - 2, 20, 2, 2, 'FD');
+    const cx = gridStartX + i * colW + colW / 2;
 
     doc.setFont('Cairo', 'normal');
-    doc.setFontSize(6.5);
-    doc.setTextColor(100, 116, 139);
-    const labelLines = doc.splitTextToSize(prepareText(label, isAr), cellW - 4) as string[];
-    doc.text(labelLines.slice(0, 2), cx + cellW / 2, y + 11, { align: 'center', maxWidth: cellW - 4 });
+    doc.setFontSize(6);
+    doc.setTextColor(71, 85, 105);
+    const labelLines = doc.splitTextToSize(label, colW - 2) as string[];
+    doc.text(labelLines.slice(0, 2), cx, y + 8, { align: 'center' });
 
     doc.setFont('Cairo', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(...scoreColor(value));
-    doc.text(`${value}%`, cx + cellW / 2, y + 21, { align: 'center' });
+    doc.setFontSize(10);
+    doc.setTextColor(18, 36, 43);
+    doc.text(`${value}%`, cx, y + 19, { align: 'center' });
   });
 
-  return y + 38;
+  return y + 31;
 }
 
 function drawSection(
@@ -379,59 +416,95 @@ function drawSection(
 ): number {
   if (!body?.trim()) return y;
 
-  const x = textX(isAr);
   const prepared = prepareText(stripMarkdown(body), isAr);
-  const bodyLines = doc.splitTextToSize(prepared, CONTENT_W - 8) as string[];
-  const boxH = 14 + bodyLines.length * LINE_H;
+  const bodyLines = doc.splitTextToSize(prepared, CONTENT_W - 42) as string[];
+  const minBoxH = 16;
+  const calculatedH = 10 + bodyLines.length * 4.4;
+  const boxH = Math.max(minBoxH, calculatedH);
 
   y = ensureSpace(doc, y, boxH + 4);
 
   doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(226, 232, 240);
+  doc.setDrawColor(236, 231, 220);
+  doc.setLineWidth(0.4);
   doc.roundedRect(MARGIN, y, CONTENT_W, boxH, 3, 3, 'FD');
 
+  // Dark badge circle
+  const badgeCx = MARGIN + 8;
+  const badgeCy = y + 7;
+  doc.setFillColor(18, 43, 52);
+  doc.circle(badgeCx, badgeCy, 4.5, 'F');
+
+  // Title
   doc.setFont('Cairo', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(15, 118, 110);
-  doc.text(prepareText(title, isAr), x, y + 6, { align: isAr ? 'right' : 'left' });
+  doc.setFontSize(7.5);
+  doc.setTextColor(18, 36, 43);
+  const titleLines = doc.splitTextToSize(title, 26) as string[];
+  doc.text(titleLines.slice(0, 2), MARGIN + 14, y + 6);
 
-  doc.setDrawColor(204, 251, 241);
+  // Vertical divider between title and content
+  doc.setDrawColor(226, 232, 240);
   doc.setLineWidth(0.3);
-  doc.line(MARGIN + 4, y + 8, PAGE_W - MARGIN - 4, y + 8);
+  doc.line(MARGIN + 36, y + 3, MARGIN + 36, y + boxH - 3);
 
+  // Content text
   doc.setFont('Cairo', 'normal');
-  doc.setFontSize(10);
+  doc.setFontSize(7.5);
   doc.setTextColor(51, 65, 85);
-  let lineY = y + 13;
+  let lineY = y + 6.5;
   for (const line of bodyLines) {
-    doc.text(line, x, lineY, { align: isAr ? 'right' : 'left', maxWidth: CONTENT_W - 8 });
-    lineY += LINE_H;
+    doc.text(line, MARGIN + 40, lineY, { maxWidth: CONTENT_W - 44 });
+    lineY += 4.4;
   }
 
-  return y + boxH + 6;
+  return y + boxH + 3.5;
 }
 
-function drawSeal(doc: jsPDF, label: string, y: number, isAr: boolean): number {
-  y = ensureSpace(doc, y, 40);
-  const cx = isAr ? MARGIN + 22 : PAGE_W - MARGIN - 22;
-  const cy = y + 18;
+function drawFooter(doc: jsPDF, y: number, isAr: boolean): number {
+  y = ensureSpace(doc, y, 32);
 
-  doc.setDrawColor(20, 184, 166);
-  doc.setLineWidth(0.9);
-  doc.circle(cx, cy, 18, 'S');
+  // Doctor Signature
+  doc.setFont('Cairo', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(18, 36, 43);
+  doc.text('Dr. Mahmoud Nasser', MARGIN + 6, y + 14);
+  doc.setDrawColor(148, 163, 184);
   doc.setLineWidth(0.3);
-  doc.circle(cx, cy, 15, 'S');
+  doc.line(MARGIN + 6, y + 10, MARGIN + 40, y + 10);
+
+  // Center slogan
+  doc.setFont('Cairo', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text('Building Clinical Connections', PAGE_W / 2, y + 12, { align: 'center' });
+
+  // Official Seal on Right
+  const sealCx = PAGE_W - MARGIN - 18;
+  const sealCy = y + 10;
+  doc.setDrawColor(16, 185, 129);
+  doc.setLineWidth(0.6);
+  doc.circle(sealCx, sealCy, 8.5, 'S');
+  doc.setLineWidth(0.2);
+  doc.circle(sealCx, sealCy, 7, 'S');
 
   doc.setFont('Cairo', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(15, 118, 110);
-  doc.text('SYNOZA', cx, cy - 3, { align: 'center' });
-  doc.setFontSize(6.5);
-  doc.text(prepareText(label, isAr), cx, cy + 2, { align: 'center' });
-  doc.setFontSize(6);
-  doc.text('OSCE', cx, cy + 7, { align: 'center' });
+  doc.setFontSize(4);
+  doc.setTextColor(5, 150, 105);
+  doc.text('SYNOZA PLATFORM', sealCx, sealCy - 1.5, { align: 'center' });
+  doc.text('OFFICIAL DOCUMENT', sealCx, sealCy + 2, { align: 'center' });
 
-  return y + 38;
+  // Bottom Security Ribbon
+  const ribbonY = PAGE_H - MARGIN + 3.5;
+  doc.setFillColor(18, 36, 43);
+  doc.rect(MARGIN - 4, ribbonY - 4, CONTENT_W + 8, 8, 'F');
+
+  doc.setFont('Cairo', 'normal');
+  doc.setFontSize(6.5);
+  doc.setTextColor(203, 213, 225);
+  doc.text('SECURE · VERIFIED · TRUSTED', MARGIN + 2, ribbonY + 1);
+  doc.text('WWW.SYNOZAA.COM', PAGE_W / 2, ribbonY + 1, { align: 'center' });
+
+  return ribbonY;
 }
 
 export async function downloadOsceReportPdf(data: OsceReportData): Promise<void> {
@@ -450,43 +523,19 @@ export async function downloadOsceReportPdf(data: OsceReportData): Promise<void>
   y = drawScores(doc, data, y, isAr);
 
   const sections = [
-    [labels.strengths, String(result.strengths ?? '')],
-    [labels.weaknesses, String(result.weaknesses ?? '')],
-    [labels.missedQuestions, String(result.missedQuestions ?? '')],
-    [labels.clinicalErrors, String(result.clinicalErrors ?? '')],
-    [labels.recommendations, String(result.recommendations ?? '')],
-    [labels.idealApproach, String(result.idealApproach ?? '')],
+    ['STRENGTHS', String(result.strengths ?? '')],
+    ['WEAKNESSES', String(result.weaknesses ?? '')],
+    ['MISSED QUESTIONS', String(result.missedQuestions ?? '')],
+    ['CLINICAL ERRORS', String(result.clinicalErrors ?? '')],
+    ['RECOMMENDATIONS', String(result.recommendations ?? '')],
+    ['IDEAL APPROACH', String(result.idealApproach ?? '')],
   ] as const;
 
   for (const [title, body] of sections) {
     y = drawSection(doc, title, body, y, isAr);
   }
 
-  const fullReport =
-    (result.fullReport as string) ||
-    sections
-      .filter(([, body]) => body.trim())
-      .map(([title, body]) => `${title}\n${body}`)
-      .join('\n\n');
-
-  if (fullReport.trim()) {
-    y = drawSection(doc, labels.fullReport, fullReport, y, isAr);
-  }
-
-  y = ensureSpace(doc, y, 20);
-  const x = textX(isAr);
-  doc.setFont('Cairo', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
-  doc.text(
-    prepareText(`${labels.platformName} — ${labels.officialReport}`, isAr),
-    x,
-    y,
-    { align: isAr ? 'right' : 'left' },
-  );
-  doc.text(prepareText(dateStr, isAr), x, y + 4, { align: isAr ? 'right' : 'left' });
-
-  drawSeal(doc, labels.certifiedSeal, y - 4, isAr);
+  drawFooter(doc, y + 4, isAr);
 
   doc.save(`synoza-report-${data.sessionId.slice(0, 8)}.pdf`);
 }

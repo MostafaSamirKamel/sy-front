@@ -1204,6 +1204,7 @@ export default {
       completeSessionError: "Failed to generate evaluation. Please try again.",
       feedbackGeneratedFromChat:
         "Report generated from your complete session transcript by AI.",
+      osceEvaluationReport: "OSCE Evaluation Report",
       fullReport: "Full AI Report",
       scoreCommunication: "Communication",
       scoreHistory: "History",
@@ -2436,6 +2437,7 @@ export default {
       completeSessionError: "فشل إنشاء التقييم. حاول مرة أخرى.",
       feedbackGeneratedFromChat:
         "التقرير مُولَّد من محادثتك الكاملة بواسطة الذكاء الاصطناعي.",
+      osceEvaluationReport: "تقرير تقييم OSCE",
       fullReport: "التقرير الكامل",
       scoreCommunication: "التواصل",
       scoreHistory: "أخذ التاريخ",

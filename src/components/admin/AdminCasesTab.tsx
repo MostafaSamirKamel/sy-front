@@ -319,8 +319,14 @@ function MediaThumbnail({ url, mediaType }: { url: string; mediaType: MediaType 
   }
   return (
     <div className="flex items-center gap-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 max-w-xs">
-      <Music size={20} className="text-violet-600 shrink-0" />
-      <audio src={url} controls preload="metadata" className="w-full min-w-0 h-8" />
+      <audio
+        src={url}
+        controls
+        controlsList="nodownload"
+        onContextMenu={(e) => e.preventDefault()}
+        preload="metadata"
+        className="w-full min-w-0 h-8"
+      />
     </div>
   );
 }
