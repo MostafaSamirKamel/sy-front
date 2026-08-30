@@ -1756,17 +1756,79 @@ function ExaminationView({
               />
             )}
 
-            <div className="flex items-center justify-between px-1 text-[10px] font-black tracking-wider uppercase">
-              <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <Sparkles size={12} className="text-amber-500" />
-                {t("clinicalObservationInput")}
-              </span>
-              <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                {t("vivaEngineActive")}
-              </span>
+            {/* Header row above text box: Left (Clinical Observation + Status), Right (Language Pills + Live Call) */}
+            <div className="flex items-center justify-between px-1 gap-2 flex-wrap text-[10px] font-black tracking-wider uppercase">
+              <div className="flex items-center gap-3">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Sparkles size={12} className="text-amber-500" />
+                  {t("clinicalObservationInput")}
+                </span>
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  {t("vivaEngineActive")}
+                </span>
+              </div>
+
+              {/* Language Pills + Live call on top of text box */}
+              <div className="flex items-center gap-2">
+                {/* Speech language pills */}
+                <div className="flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full p-0.5 text-[11px] font-bold shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => setLang('AUTO')}
+                    className={`px-2.5 py-0.5 rounded-full transition-all ${
+                      lang === 'AUTO'
+                        ? 'bg-teal-700 text-white shadow-xs'
+                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                    }`}
+                  >
+                    Auto
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLang('AR')}
+                    className={`px-2.5 py-0.5 rounded-full transition-all ${
+                      lang === 'AR'
+                        ? 'bg-teal-700 text-white shadow-xs'
+                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                    }`}
+                  >
+                    عربي
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLang('EN')}
+                    className={`px-2.5 py-0.5 rounded-full transition-all ${
+                      lang === 'EN'
+                        ? 'bg-teal-700 text-white shadow-xs'
+                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                    }`}
+                  >
+                    EN
+                  </button>
+                </div>
+
+                {/* Live Call Toggle */}
+                {isLiveCallSupported && (
+                  <button
+                    type="button"
+                    onClick={onToggleLiveCall}
+                    disabled={sending}
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 transition-all ${
+                      isLiveCall
+                        ? 'bg-red-600 text-white animate-pulse'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300'
+                    }`}
+                    title={isLiveCall ? endLiveCallLabel : liveCallLabel}
+                  >
+                    <PhoneCall size={12} />
+                    <span>{isLiveCall ? 'END CALL' : 'LIVE CALL'}</span>
+                  </button>
+                )}
+              </div>
             </div>
 
+            {/* Full-width Input Box with Mic and Send */}
             <div className="rounded-full border-2 border-slate-700 dark:border-slate-400 bg-white dark:bg-slate-900 p-1.5 pl-4 pr-1.5 flex items-center gap-2 shadow-xs">
               <input
                 type="text"
@@ -1786,60 +1848,6 @@ function ExaminationView({
               />
 
               <div className="flex items-center gap-1.5 shrink-0">
-                {/* Speech language pills */}
-                <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-full p-0.5 text-[11px] font-bold">
-                  <button
-                    type="button"
-                    onClick={() => setLang('AUTO')}
-                    className={`px-2 py-0.5 rounded-full transition-all ${
-                      lang === 'AUTO'
-                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                        : 'text-slate-500'
-                    }`}
-                  >
-                    Auto
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLang('AR')}
-                    className={`px-2 py-0.5 rounded-full transition-all ${
-                      lang === 'AR'
-                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                        : 'text-slate-500'
-                    }`}
-                  >
-                    عربي
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLang('EN')}
-                    className={`px-2 py-0.5 rounded-full transition-all ${
-                      lang === 'EN'
-                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                        : 'text-slate-500'
-                    }`}
-                  >
-                    EN
-                  </button>
-                </div>
-
-                {/* Live Call Toggle */}
-                {isLiveCallSupported && (
-                  <button
-                    type="button"
-                    onClick={onToggleLiveCall}
-                    disabled={sending}
-                    className={`p-2 rounded-full transition-all ${
-                      isLiveCall
-                        ? 'bg-red-600 text-white animate-pulse'
-                        : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200'
-                    }`}
-                    title={isLiveCall ? endLiveCallLabel : liveCallLabel}
-                  >
-                    <PhoneCall size={15} />
-                  </button>
-                )}
-
                 {/* Mic button */}
                 <button
                   type="button"
