@@ -36,6 +36,10 @@ import {
   QrCode,
   FileText,
   Sparkles,
+  ChevronLeft,
+  PhoneCall,
+  Mic,
+  Send,
 } from "lucide-react";
 import api from "../lib/api";
 import { dispatchEntitlementsChanged } from "../lib/entitlementsEvents";
@@ -1473,7 +1477,7 @@ function ExaminationView({
   endLiveCallLabel?: string;
   sessionLocked?: boolean;
 }) {
-  const [galleryOpen, setGalleryOpen] = useState(true);
+  const [activeMediaIndex, setActiveMediaIndex] = useState(0);
 
   const structuredFindings = parseStructuredFindings(session.case.physicalExam);
   const maneuverModelAnswer = activeManeuver ? structuredFindings[activeManeuver] ?? '' : '';
@@ -1516,241 +1520,375 @@ function ExaminationView({
     );
   }
 
+  const stationImages = examImages.filter(
+    (img) => !img.maneuver || img.maneuver === activeManeuver,
+  );
+  const fallbackUrl =
+    DEFAULT_MANEUVER_IMAGES[activeManeuver] || DEFAULT_MANEUVER_IMAGES.inspection;
+  const displayImages =
+    stationImages.length > 0
+      ? stationImages.map((img) => ({
+          ...img,
+          url: resolveExamImageUrl(activeManeuver, img.url),
+        }))
+      : [
+          {
+            url: fallbackUrl,
+            caption: isAr ? activeManeuverMeta.nameAr : activeManeuverMeta.nameEn,
+            captionAr: activeManeuverMeta.nameAr,
+          },
+        ];
+
+  const currentMedia = displayImages[Math.min(activeMediaIndex, displayImages.length - 1)] || displayImages[0];
+  const mediaType = inferMediaType(currentMedia);
+
+  const examinerMessages = messages.filter((m) => m.role === 'EXAMINER');
+  const latestExaminerMsg = examinerMessages[examinerMessages.length - 1]?.content || '';
+  const latestStudentMsg = messages[messages.length - 1]?.role === 'STUDENT' ? messages[messages.length - 1]?.content : '';
+
   return (
-    <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-      {/* Station header — desktop only (saves vertical space on mobile) */}
-      <div className="hidden md:flex shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-5 py-3 items-center justify-between">
-        <div>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            {activeManeuverMeta.nameEn} · {t("observationStation")}
-          </p>
-          <p className="text-sm font-bold text-slate-800 dark:text-white uppercase">
-            {t("mustExaminerPanel")}
-          </p>
-        </div>
-        {vivaActive && (
-          <span className="text-[10px] font-bold uppercase px-3 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-            {t("oralCheckInProgress")}
-          </span>
-        )}
-      </div>
-
-      <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-0 overflow-hidden">
-        {/* Desktop clinical panel */}
-        {activeManeuver && (
-          <div className="hidden lg:block shrink-0 lg:w-[42%] lg:max-w-md lg:border-r border-slate-200 dark:border-slate-800 overflow-y-auto p-4">
-            <ClinicalStationPanel
-              maneuverId={activeManeuver}
-              examImages={examImages}
-              isAr={isAr}
-              t={t}
-            />
+    <div className="flex-1 flex flex-col overflow-y-auto bg-slate-100/70 dark:bg-slate-950 p-3 sm:p-5">
+      <div className="w-full max-w-3xl mx-auto space-y-4">
+        {/* Card 1: Top Observation Station Header */}
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 sm:p-4 flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/40 flex items-center justify-center text-amber-600 dark:text-amber-400">
+              <Search size={18} />
+            </div>
+            <div>
+              <p className="text-[11px] sm:text-xs font-black tracking-wider text-slate-400 dark:text-slate-500 uppercase">
+                {activeManeuverMeta.nameEn.toUpperCase()} {t("observationStation")}
+              </p>
+              <p className="text-xs sm:text-sm font-black text-slate-800 dark:text-white uppercase tracking-wide">
+                {t("mustExaminerPanel")}
+              </p>
+            </div>
           </div>
-        )}
+          {vivaActive && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/90 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[11px] font-bold">
+              <Sparkles size={12} className="text-amber-600 dark:text-amber-400" />
+              <span>{t("oralCheckInProgress")}</span>
+            </div>
+          )}
+        </div>
 
-        {/* Clinical examiner chat — takes all remaining mobile height */}
-        <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-slate-900 border-t lg:border-t-0 border-slate-200 dark:border-slate-800">
-          {/* Mobile collapsible gallery — open by default with compact height */}
-          {activeManeuver && (
-            <div className="lg:hidden shrink-0 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80">
-              <button
-                type="button"
-                onClick={() => setGalleryOpen((open) => !open)}
-                className="w-full px-3 py-1.5 flex items-center justify-between gap-2 text-left"
-              >
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
-                  {t("patientSlideGallery")}
-                </span>
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary shrink-0">
-                  {galleryOpen ? t("hideClinicalImages") : t("showClinicalImages")}
-                  {galleryOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                </span>
-              </button>
-              {galleryOpen && (
-                <div className="px-3 pb-2">
-                  <ClinicalStationPanel
-                    maneuverId={activeManeuver}
-                    examImages={examImages}
-                    isAr={isAr}
-                    t={t}
-                    compact
-                  />
+        {/* Card 2: Media Player Box */}
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 sm:p-4 shadow-xs space-y-3">
+          <div className="flex items-center justify-between text-xs font-bold px-1">
+            <span className="text-slate-800 dark:text-slate-200 uppercase tracking-wide">
+              CHEST {activeManeuverMeta.nameEn.toUpperCase()} ({activeManeuverMeta.nameAr})
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                {mediaType.toUpperCase()} {activeMediaIndex + 1} OF {displayImages.length}
+              </span>
+              {displayImages.length > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setActiveMediaIndex((i) => Math.max(0, i - 1))}
+                    disabled={activeMediaIndex === 0}
+                    className="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 disabled:opacity-30"
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveMediaIndex((i) => Math.min(displayImages.length - 1, i + 1))}
+                    disabled={activeMediaIndex === displayImages.length - 1}
+                    className="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 disabled:opacity-30"
+                  >
+                    <ChevronRight size={14} />
+                  </button>
                 </div>
               )}
+            </div>
+          </div>
+
+          <div className="relative rounded-xl overflow-hidden bg-black border border-slate-800 shadow-inner flex items-center justify-center min-h-[200px] max-h-[360px] sm:max-h-[420px]">
+            {mediaType === 'video' ? (
+              <video
+                src={currentMedia.url}
+                controls
+                controlsList="nodownload"
+                onContextMenu={(e) => e.preventDefault()}
+                playsInline
+                className="w-full max-h-[360px] sm:max-h-[420px] object-contain mx-auto bg-black rounded-xl"
+              >
+                <track kind="captions" />
+              </video>
+            ) : mediaType === 'audio' ? (
+              <div className="p-8 bg-slate-900 w-full flex flex-col items-center justify-center gap-3">
+                <audio
+                  src={currentMedia.url}
+                  controls
+                  controlsList="nodownload"
+                  onContextMenu={(e) => e.preventDefault()}
+                  className="w-full max-w-md"
+                />
+              </div>
+            ) : (
+              <img
+                src={currentMedia.url}
+                alt={currentMedia.caption || activeManeuverMeta.nameEn}
+                className="w-full max-h-[360px] sm:max-h-[420px] object-contain mx-auto bg-black rounded-xl"
+              />
+            )}
+          </div>
+          {(currentMedia.caption || currentMedia.captionAr) && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 px-1 italic" dir="auto">
+              {isAr ? currentMedia.captionAr || currentMedia.caption : currentMedia.caption || currentMedia.captionAr}
+            </p>
+          )}
+        </div>
+
+        {/* Card 3: Clinical Examiner Message Card */}
+        <div className="rounded-2xl bg-slate-600/90 dark:bg-slate-800 p-3 sm:p-4 shadow-xs space-y-2">
+          <div className="rounded-xl bg-white dark:bg-slate-900 p-4 text-slate-800 dark:text-slate-100 shadow-xs space-y-1.5">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-black uppercase tracking-wider text-amber-500">
+                {t("clinicalExaminer")}
+              </p>
+              {isLiveCall && (
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 animate-pulse flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  LIVE CALL
+                </span>
+              )}
+            </div>
+            <div className="text-sm sm:text-base font-bold leading-relaxed whitespace-pre-line text-slate-800 dark:text-slate-100" dir="auto">
+              {latestExaminerMsg || t("examinerWillStart")}
+            </div>
+          </div>
+
+          {messages.length > 2 && (
+            <div className="px-1 max-h-36 overflow-y-auto space-y-1.5 text-xs text-slate-200">
+              {messages.slice(0, -1).map((m, idx) => (
+                <div
+                  key={`${m.id || idx}`}
+                  className={`p-2 rounded-lg ${m.role === 'STUDENT' ? 'bg-slate-700/80 text-white ml-8' : 'bg-slate-800/80 text-slate-300 mr-8'}`}
+                  dir="auto"
+                >
+                  <span className="font-bold text-[10px] text-amber-400 uppercase mr-1">
+                    {m.role === 'STUDENT' ? 'Student: ' : 'Examiner: '}
+                  </span>
+                  {m.content}
+                </div>
+              ))}
             </div>
           )}
 
-          <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
-            {/* Row 1: examiner identity + status */}
-            <div className="px-3 pt-2 pb-1 flex items-start gap-2 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                <Stethoscope size={16} className="text-amber-700" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-bold text-slate-400 uppercase leading-tight">
-                  {t("clinicalExaminer")}
-                </p>
-                <p className="text-xs text-slate-600 dark:text-slate-300 truncate">
-                  {activeManeuverMeta.nameEn}
-                </p>
-              </div>
-              {vivaActive && (
-                <span className="shrink-0 max-w-[42%] text-right text-[9px] font-bold uppercase leading-tight px-2 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                  {t("oralCheckInProgress")}
-                </span>
-              )}
+          {sending && (
+            <div className="px-3 py-1 flex items-center gap-2 text-xs text-slate-200">
+              <Loader2 size={14} className="animate-spin text-amber-300" />
+              <span>{t("examinerTyping")}</span>
             </div>
+          )}
+        </div>
 
-            {/* Row 2: speech + live call — never overlap */}
-            <div className="px-3 pb-2 flex items-center justify-between gap-2 min-w-0">
-              <SpeechLanguageToggle
-                value={lang}
-                onChange={setLang}
-                disabled={sending || isLiveCall}
-                compact
-                labels={{
-                  auto: t('speechLangAuto'),
-                  ar: t('speechLangAr'),
-                  en: t('speechLangEn'),
-                }}
-              />
-              <LiveCallButton
-                isLiveCall={isLiveCall}
-                isLiveCallBusy={isLiveCallBusy}
-                isLiveCallSupported={isLiveCallSupported}
-                onToggleLiveCall={onToggleLiveCall}
-                liveCallLabel={liveCallLabel}
-                endLiveCallLabel={endLiveCallLabel}
-                disabled={sending}
-                compact
-              />
+        {/* Card 4 / Solved Action */}
+        {solved ? (
+          <div className="rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-900 p-4 sm:p-5 space-y-4 shadow-xs">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center shrink-0">
+                <CheckCircle2 size={20} className="text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wide">
+                  {t("maneuverSolvedTitle")}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {t("maneuverSolvedDesc")}
+                </p>
+              </div>
             </div>
-
-          </div>
-
-          <ChatScrollArea
-            endRef={chatEndRef}
-            scrollDeps={[messages, sending, galleryOpen]}
-            forceScroll={sending}
-            empty={messages.length === 0}
-            emptyContent={
-              <p className="text-sm text-slate-400 text-center py-4">
-                {t("examinerWillStart")}
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700/80 dark:text-emerald-400/80 mb-1">
+                {t("modelAnswerLabel")}
               </p>
-            }
-          >
-            {messages.map((msg) => (
               <div
-                key={msg.id}
-                className={`flex ${msg.role === "STUDENT" ? "justify-end" : "justify-start"}`}
+                className="rounded-xl bg-slate-900 text-slate-100 text-sm leading-relaxed p-3.5 whitespace-pre-line"
+                dir="auto"
               >
-                <div
-                  className={`max-w-[92%] sm:max-w-[85%] px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-sm ${
-                    msg.role === "STUDENT"
-                      ? "bg-primary text-white rounded-br-sm"
-                      : "bg-amber-50 border border-amber-100 text-amber-950 rounded-bl-sm"
-                  }`}
-                >
-                  <span dir="auto">{msg.content}</span>
+                {maneuverModelAnswer || t("modelAnswerUnavailable")}
+              </div>
+            </div>
+
+            {consolidatedFindings.length > 0 && (
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">
+                  {t("consolidatedLogTitle")}
+                </p>
+                <div className="space-y-2.5">
+                  {consolidatedFindings.map((row) => (
+                    <div key={row.id} dir="auto">
+                      <p className="text-[11px] font-bold text-teal-700 dark:text-teal-400 uppercase">
+                        {row.name}
+                      </p>
+                      <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line">
+                        {row.findings}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-            {sending && <ChatTypingIndicator label={t("examinerTyping")} />}
-          </ChatScrollArea>
+            )}
 
-          {solved ? (
-            <div className="shrink-0 border-t border-emerald-200 dark:border-emerald-900 bg-emerald-50/60 dark:bg-emerald-950/30 max-h-[52vh] overflow-y-auto overscroll-y-contain">
-              <div className="p-4 sm:p-5 space-y-4">
-                <div className="rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-900 p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center shrink-0">
-                      <CheckCircle2 size={20} className="text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wide">
-                        {t("maneuverSolvedTitle")}
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        {t("maneuverSolvedDesc")}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700/80 dark:text-emerald-400/80 mb-1">
-                      {t("modelAnswerLabel")}
-                    </p>
-                    <div
-                      className="rounded-xl bg-slate-900 text-slate-100 text-sm leading-relaxed p-3 whitespace-pre-line"
-                      dir="auto"
-                    >
-                      {maneuverModelAnswer || t("modelAnswerUnavailable")}
-                    </div>
-                  </div>
+            <button
+              type="button"
+              onClick={onProceed}
+              className="w-full btn-primary py-3 inline-flex items-center justify-center gap-2 text-base font-bold shadow-md"
+            >
+              {t("proceedToNextStep")}
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        ) : (
+          /* Observation Input & Actions Box */
+          <div className="space-y-3 pt-1">
+            {(isLiveCall || micError) && (
+              <LiveCallMicStatus
+                isLiveCall={isLiveCall}
+                isBusy={isLiveCallBusy}
+                isMicListening={isLiveCallMicListening}
+                isSpeaking={isLiveCallSpeaking}
+                error={isLiveCall ? micError : undefined}
+              />
+            )}
+
+            <div className="flex items-center justify-between px-1 text-[10px] font-black tracking-wider uppercase">
+              <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <Sparkles size={12} className="text-amber-500" />
+                {t("clinicalObservationInput")}
+              </span>
+              <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                {t("vivaEngineActive")}
+              </span>
+            </div>
+
+            <div className="rounded-full border-2 border-slate-700 dark:border-slate-400 bg-white dark:bg-slate-900 p-1.5 pl-4 pr-1.5 flex items-center gap-2 shadow-xs">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (input.trim() && !sending && !sessionLocked) {
+                      sendMessage();
+                    }
+                  }
+                }}
+                placeholder={t("typeClinicalObservation")}
+                className="flex-1 bg-transparent border-0 text-sm focus:outline-hidden text-slate-800 dark:text-white placeholder:text-slate-400"
+                disabled={sending || sessionLocked}
+              />
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Speech language pills */}
+                <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-full p-0.5 text-[11px] font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setLang('AUTO')}
+                    className={`px-2 py-0.5 rounded-full transition-all ${
+                      lang === 'AUTO'
+                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                        : 'text-slate-500'
+                    }`}
+                  >
+                    Auto
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLang('AR')}
+                    className={`px-2 py-0.5 rounded-full transition-all ${
+                      lang === 'AR'
+                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                        : 'text-slate-500'
+                    }`}
+                  >
+                    عربي
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLang('EN')}
+                    className={`px-2 py-0.5 rounded-full transition-all ${
+                      lang === 'EN'
+                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                        : 'text-slate-500'
+                    }`}
+                  >
+                    EN
+                  </button>
                 </div>
 
-                {consolidatedFindings.length > 0 && (
-                  <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">
-                      {t("consolidatedLogTitle")}
-                    </p>
-                    <div className="space-y-2.5">
-                      {consolidatedFindings.map((row) => (
-                        <div key={row.id} dir="auto">
-                          <p className="text-[11px] font-bold text-teal-700 dark:text-teal-400 uppercase">
-                            {row.name}
-                          </p>
-                          <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line">
-                            {row.findings}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                {/* Live Call Toggle */}
+                {isLiveCallSupported && (
+                  <button
+                    type="button"
+                    onClick={onToggleLiveCall}
+                    disabled={sending}
+                    className={`p-2 rounded-full transition-all ${
+                      isLiveCall
+                        ? 'bg-red-600 text-white animate-pulse'
+                        : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200'
+                    }`}
+                    title={isLiveCall ? endLiveCallLabel : liveCallLabel}
+                  >
+                    <PhoneCall size={15} />
+                  </button>
                 )}
 
+                {/* Mic button */}
                 <button
                   type="button"
-                  onClick={onProceed}
-                  className="w-full btn-primary py-3 inline-flex items-center justify-center gap-2"
+                  onClick={onToggleMic}
+                  disabled={!isMicSupported || sending || sessionLocked}
+                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                    isListening
+                      ? 'bg-red-600 text-white animate-pulse'
+                      : 'bg-[#854d0e] hover:bg-[#713f12] text-white'
+                  }`}
+                  title="Voice Input"
                 >
-                  {t("proceedToNextStep")}
-                  <ChevronRight size={16} />
+                  <Mic size={16} />
+                </button>
+
+                {/* Send button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (input.trim() && !sending && !sessionLocked) {
+                      sendMessage();
+                    }
+                  }}
+                  disabled={!input.trim() || sending || sessionLocked}
+                  className="w-9 h-9 rounded-full bg-slate-600 hover:bg-slate-700 disabled:opacity-40 text-white flex items-center justify-center transition-all"
+                  title="Send"
+                >
+                  <Send size={16} />
                 </button>
               </div>
             </div>
-          ) : (
-            <div className="shrink-0 border-t border-slate-100 dark:border-slate-800">
-              {(isLiveCall || micError) && (
-                <LiveCallMicStatus
-                  isLiveCall={isLiveCall}
-                  isBusy={isLiveCallBusy}
-                  isMicListening={isLiveCallMicListening}
-                  isSpeaking={isLiveCallSpeaking}
-                  error={isLiveCall ? micError : undefined}
-                />
-              )}
-              <SimulationChatInput
-                input={input}
-                setInput={setInput}
-                onSend={() => sendMessage()}
-                sending={sending}
-                placeholder={t("describeFindings")}
-                chatError={chatError}
-                isListening={isListening}
-                isProcessing={isProcessing}
-                isMicSupported={isMicSupported}
-                onToggleMic={onToggleMic}
-                micListeningLabel={t("micListening")}
-                micNotSupportedLabel={t("micNotSupported")}
-                micProcessingLabel={t("micProcessing")}
-                micError={micError}
-                disabled={sessionLocked}
-                isLiveCall={isLiveCall}
-                compact
-              />
+
+            {/* Stuck / I Don't Know button banner */}
+            <div className="rounded-xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/40 px-4 py-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                <HelpCircle size={14} className="text-amber-500" />
+                <span>{t("stuckUnderObservation")}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => sendMessage(isAr ? 'مش عارف' : 'idk')}
+                disabled={sending || sessionLocked}
+                className="text-xs font-black text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:underline uppercase tracking-wide transition-all disabled:opacity-50"
+              >
+                {t("iDontKnowBtn")}
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
