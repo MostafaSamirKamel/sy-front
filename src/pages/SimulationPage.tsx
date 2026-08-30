@@ -3134,41 +3134,100 @@ function FeedbackView({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 items-center pt-8 mt-8 border-t border-[#e8e4d8] dark:border-slate-800">
           {/* Doctor Signature */}
           <div className="text-center sm:text-left">
-            <div className="h-10 flex items-center justify-center sm:justify-start">
-              <svg className="h-8 w-32 text-slate-800 dark:text-slate-200" viewBox="0 0 160 40" fill="none">
+            <div className="h-12 flex items-center justify-center sm:justify-start">
+              <svg className="h-11 w-40 text-[#1e3a8a] dark:text-[#60a5fa]" viewBox="0 0 160 55" fill="none">
                 <path
-                  d="M10 28 C 25 10, 35 35, 45 15 C 55 5, 50 30, 65 22 C 80 14, 75 32, 90 20 C 105 10, 110 30, 130 18 C 140 12, 145 25, 155 22"
+                  d="M18 42 C14 25, 22 10, 28 8 C33 6, 36 15, 33 28 C30 40, 22 46, 26 48 C30 50, 42 20, 48 18 C54 16, 52 28, 56 30 C60 32, 68 22, 74 24 C80 26, 78 35, 84 32 C90 29, 98 25, 105 28 C112 31, 108 38, 118 30 C125 24, 134 26, 142 28 M22 28 C45 22, 85 26, 148 24 M35 48 C65 42, 105 38, 138 34"
                   stroke="currentColor"
-                  strokeWidth="2"
+                  strokeWidth="2.2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
               </svg>
             </div>
-            <div className="w-36 h-0.5 bg-slate-300 dark:bg-slate-600 my-1 mx-auto sm:mx-0" />
+            <div className="w-40 h-0.5 bg-[#d4cebd] dark:bg-slate-700 my-1 mx-auto sm:mx-0" />
             <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
               Dr. Mahmoud Nasser
             </p>
           </div>
 
-          {/* Slogan */}
-          <div className="text-center flex flex-col items-center justify-center">
-            <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center mb-1">
-              <Sparkles size={14} />
+          {/* Center: Synoza Connected Logo & Slogan with Dividers */}
+          <div className="flex items-center justify-center gap-4 px-2">
+            <div className="hidden sm:block h-10 w-px bg-[#d4cebd] dark:bg-slate-700" />
+            <div className="text-center flex flex-col items-center justify-center">
+              <div className="w-7 h-7 flex items-center justify-center mb-1 text-[#3f6766] dark:text-[#5eead4]">
+                <svg viewBox="0 0 24 24" className="w-6 h-6" fill="currentColor">
+                  <circle cx="12" cy="5" r="2.8" />
+                  <circle cx="5.5" cy="18" r="2.8" />
+                  <circle cx="18.5" cy="18" r="2.8" />
+                  <line x1="12" y1="5" x2="5.5" y2="18" stroke="currentColor" strokeWidth="2.2" />
+                  <line x1="12" y1="5" x2="18.5" y2="18" stroke="currentColor" strokeWidth="2.2" />
+                  <line x1="5.5" y1="18" x2="18.5" y2="18" stroke="currentColor" strokeWidth="2.2" />
+                </svg>
+              </div>
+              <p className="text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                Building Clinical Connections
+              </p>
             </div>
-            <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">
-              Building Clinical Connections
-            </p>
+            <div className="hidden sm:block h-10 w-px bg-[#d4cebd] dark:bg-slate-700" />
           </div>
 
-          {/* Embossed Platform Stamp */}
+          {/* Official Green Scalloped Seal Stamp */}
           <div className="flex justify-center sm:justify-end">
-            <div className="w-18 h-18 rounded-full border-2 border-emerald-600/40 bg-emerald-50/60 dark:bg-emerald-950/40 p-1 flex items-center justify-center shadow-inner">
-              <div className="w-full h-full rounded-full border border-dashed border-emerald-600/60 flex flex-col items-center justify-center text-center p-1 text-[7px] font-bold text-emerald-800 dark:text-emerald-300 uppercase leading-tight">
-                <span>SYNOZA PLATFORM</span>
-                <span className="text-[10px] my-0.5">✦</span>
-                <span>OFFICIAL DOCUMENT</span>
-              </div>
+            <div className="w-22 h-22 flex items-center justify-center">
+              <svg viewBox="0 0 120 120" className="w-20 h-20 text-[#50806b] dark:text-[#6ba78e] select-none" fill="none">
+                {/* Scalloped outer edge (certificate rosette) */}
+                <path
+                  d="M 60 4 Q 63 4 66 6 Q 69 8 72 7 Q 75 6 78 9 Q 81 12 84 12 Q 87 12 90 16 Q 93 20 95 21 Q 98 22 100 27 Q 102 32 103 34 Q 105 36 107 42 Q 108 47 108 50 Q 109 53 109 60 Q 109 67 108 70 Q 108 73 107 78 Q 105 84 103 86 Q 102 88 100 93 Q 98 98 95 99 Q 93 100 90 104 Q 87 108 84 108 Q 81 108 78 111 Q 75 114 72 113 Q 69 112 66 114 Q 63 116 60 116 Q 57 116 54 114 Q 51 112 48 113 Q 45 114 42 111 Q 39 108 36 108 Q 33 108 30 104 Q 27 100 25 99 Q 22 98 20 93 Q 18 88 17 86 Q 15 84 13 78 Q 12 73 12 70 Q 11 67 11 60 Q 11 53 12 50 Q 12 47 13 42 Q 15 36 17 34 Q 18 32 20 27 Q 22 22 25 21 Q 27 20 30 16 Q 33 12 36 12 Q 39 12 42 9 Q 45 6 48 7 Q 51 8 54 6 Q 57 4 60 4 Z"
+                  fill="currentColor"
+                  fillOpacity="0.14"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinejoin="round"
+                />
+                {/* Concentric rings */}
+                <circle cx="60" cy="60" r="46" stroke="currentColor" strokeWidth="1.4" />
+                <circle cx="60" cy="60" r="43" stroke="currentColor" strokeWidth="0.8" strokeDasharray="2 2" />
+                <circle cx="60" cy="60" r="32" stroke="currentColor" strokeWidth="1" />
+
+                {/* Top Curved Text */}
+                <path id="topSealCurveWeb" d="M 24 60 A 36 36 0 0 1 96 60" fill="none" />
+                <text className="text-[7px] font-black uppercase tracking-[0.16em]" fill="currentColor">
+                  <textPath href="#topSealCurveWeb" startOffset="50%" textAnchor="middle">
+                    ★ SYNOZA PLATFORM ★
+                  </textPath>
+                </text>
+
+                {/* Bottom Curved Text */}
+                <path id="botSealCurveWeb" d="M 96 60 A 36 36 0 0 1 24 60" fill="none" />
+                <text className="text-[6.5px] font-black uppercase tracking-[0.14em]" fill="currentColor">
+                  <textPath href="#botSealCurveWeb" startOffset="50%" textAnchor="middle">
+                    • OFFICIAL DOCUMENT •
+                  </textPath>
+                </text>
+
+                {/* Laurel Wreath */}
+                <path
+                  d="M 40 60 C 40 70, 48 77, 60 78 C 72 77, 80 70, 80 60"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                  fill="none"
+                />
+                <path
+                  d="M 42 55 Q 40 62 44 65 M 46 64 Q 45 70 51 72 M 53 71 Q 55 76 60 76 M 67 71 Q 65 76 60 76 M 74 64 Q 75 70 69 72 M 78 55 Q 80 62 76 65"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                  fill="none"
+                />
+
+                {/* Center 3-lobed Propeller Emblem */}
+                <g transform="translate(60,56) scale(0.68)">
+                  <circle cx="0" cy="0" r="3.5" fill="currentColor" />
+                  <path d="M 0 -3.5 C 5 -12, 14 -10, 8 -3 C 5 0, 3 0, 0 0" fill="currentColor" />
+                  <path d="M 0 -3.5 C 5 -12, 14 -10, 8 -3 C 5 0, 3 0, 0 0" transform="rotate(120)" fill="currentColor" />
+                  <path d="M 0 -3.5 C 5 -12, 14 -10, 8 -3 C 5 0, 3 0, 0 0" transform="rotate(240)" fill="currentColor" />
+                </g>
+              </svg>
             </div>
           </div>
         </div>

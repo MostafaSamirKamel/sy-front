@@ -463,35 +463,96 @@ function drawSection(
 function drawFooter(doc: jsPDF, y: number, isAr: boolean): number {
   y = ensureSpace(doc, y, 32);
 
-  // Doctor Signature
+  // Doctor Signature in Navy ink
+  doc.setDrawColor(30, 58, 138);
+  doc.setLineWidth(0.45);
+  // Signature flourish curve
+  doc.lines(
+    [
+      [-2, -5, -1, -9, 2, -10],
+      [3, 2, 2, 6, 0, 9],
+      [-2, 3, 2, 5, 4, 1],
+      [3, -8, 6, -9, 8, -6],
+      [2, 3, 2, 6, 3, 7],
+      [3, -4, 6, -5, 8, -2],
+      [2, 3, 2, 5, 4, 3],
+      [4, -3, 7, -2, 10, 1],
+      [3, 3, 2, 4, 5, 1],
+      [4, -3, 8, -2, 12, 0],
+    ],
+    MARGIN + 12,
+    y + 11,
+    [1, 1],
+  );
+  // Underline flourish
+  doc.setLineWidth(0.35);
+  doc.line(MARGIN + 8, y + 9, MARGIN + 42, y + 8);
+  doc.line(MARGIN + 14, y + 12, MARGIN + 38, y + 10.5);
+
+  // Doctor Name
+  doc.setDrawColor(212, 206, 189);
+  doc.setLineWidth(0.25);
+  doc.line(MARGIN + 6, y + 14, MARGIN + 44, y + 14);
+
   doc.setFont('Cairo', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(18, 36, 43);
-  doc.text('Dr. Mahmoud Nasser', MARGIN + 6, y + 14);
-  doc.setDrawColor(148, 163, 184);
+  doc.text('Dr. Mahmoud Nasser', MARGIN + 6, y + 18);
+
+  // Center: Connected Nodes Logo & Slogan with Dividers
+  const midX = PAGE_W / 2;
+  doc.setDrawColor(212, 206, 189);
+  doc.setLineWidth(0.25);
+  doc.line(midX - 26, y + 6, midX - 26, y + 18);
+  doc.line(midX + 26, y + 6, midX + 26, y + 18);
+
+  // Connected triangle icon
+  doc.setFillColor(63, 103, 102);
+  doc.circle(midX, y + 7, 0.8, 'F');
+  doc.circle(midX - 2.2, y + 11, 0.8, 'F');
+  doc.circle(midX + 2.2, y + 11, 0.8, 'F');
+  doc.setDrawColor(63, 103, 102);
   doc.setLineWidth(0.3);
-  doc.line(MARGIN + 6, y + 10, MARGIN + 40, y + 10);
+  doc.line(midX, y + 7, midX - 2.2, y + 11);
+  doc.line(midX, y + 7, midX + 2.2, y + 11);
+  doc.line(midX - 2.2, y + 11, midX + 2.2, y + 11);
 
-  // Center slogan
   doc.setFont('Cairo', 'normal');
-  doc.setFontSize(7.5);
+  doc.setFontSize(7);
   doc.setTextColor(100, 116, 139);
-  doc.text('Building Clinical Connections', PAGE_W / 2, y + 12, { align: 'center' });
+  doc.text('Building Clinical Connections', midX, y + 16, { align: 'center' });
 
-  // Official Seal on Right
+  // Official Green Scalloped Seal Stamp on Right
   const sealCx = PAGE_W - MARGIN - 18;
-  const sealCy = y + 10;
-  doc.setDrawColor(16, 185, 129);
-  doc.setLineWidth(0.6);
-  doc.circle(sealCx, sealCy, 8.5, 'S');
-  doc.setLineWidth(0.2);
-  doc.circle(sealCx, sealCy, 7, 'S');
+  const sealCy = y + 11;
 
+  // Outer Rosette / scalloped look with outer circle & dash
+  doc.setDrawColor(80, 128, 107);
+  doc.setLineWidth(0.6);
+  doc.circle(sealCx, sealCy, 9.5, 'S');
+
+  doc.setDrawColor(80, 128, 107);
+  doc.setLineWidth(0.3);
+  doc.circle(sealCx, sealCy, 8.2, 'S');
+
+  doc.setLineWidth(0.2);
+  doc.circle(sealCx, sealCy, 6.2, 'S');
+
+  // Seal Text
   doc.setFont('Cairo', 'bold');
-  doc.setFontSize(4);
-  doc.setTextColor(5, 150, 105);
-  doc.text('SYNOZA PLATFORM', sealCx, sealCy - 1.5, { align: 'center' });
-  doc.text('OFFICIAL DOCUMENT', sealCx, sealCy + 2, { align: 'center' });
+  doc.setFontSize(3.8);
+  doc.setTextColor(80, 128, 107);
+  doc.text('★ SYNOZA PLATFORM ★', sealCx, sealCy - 3.8, { align: 'center' });
+
+  // Center 3-node propeller emblem in seal
+  doc.setFillColor(80, 128, 107);
+  doc.circle(sealCx, sealCy - 0.2, 0.7, 'F');
+  doc.circle(sealCx - 1.2, sealCy + 1.2, 0.6, 'F');
+  doc.circle(sealCx + 1.2, sealCy + 1.2, 0.6, 'F');
+  doc.circle(sealCx, sealCy - 1.5, 0.6, 'F');
+
+  doc.setFontSize(3.5);
+  doc.text('• OFFICIAL DOCUMENT •', sealCx, sealCy + 4.2, { align: 'center' });
 
   // Bottom Security Ribbon
   const ribbonY = PAGE_H - MARGIN + 3.5;
