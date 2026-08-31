@@ -1573,28 +1573,6 @@ function ExaminationView({
   return (
     <div className="flex-1 flex flex-col overflow-y-auto bg-slate-100/70 dark:bg-slate-950 p-3 sm:p-5">
       <div className="w-full max-w-3xl mx-auto space-y-4">
-        {/* Card 1: Top Observation Station Header */}
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 sm:p-4 flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/40 flex items-center justify-center text-amber-600 dark:text-amber-400">
-              <Search size={18} />
-            </div>
-            <div>
-              <p className="text-[11px] sm:text-xs font-black tracking-wider text-slate-400 dark:text-slate-500 uppercase">
-                {activeManeuverMeta.nameEn.toUpperCase()} {t("observationStation")}
-              </p>
-              <p className="text-xs sm:text-sm font-black text-slate-800 dark:text-white uppercase tracking-wide">
-                {t("mustExaminerPanel")}
-              </p>
-            </div>
-          </div>
-          {vivaActive && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/90 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[11px] font-bold">
-              <Sparkles size={12} className="text-amber-600 dark:text-amber-400" />
-              <span>{t("oralCheckInProgress")}</span>
-            </div>
-          )}
-        </div>
 
         {/* Card 2: Media Player Box */}
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 sm:p-4 shadow-xs space-y-3">
@@ -1942,21 +1920,6 @@ function ExaminationView({
               </div>
             </div>
 
-            {/* Stuck / I Don't Know button banner */}
-            <div className="rounded-xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/40 px-4 py-2.5 flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                <HelpCircle size={14} className="text-amber-500" />
-                <span>{t("stuckUnderObservation")}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => sendMessage(isAr ? 'مش عارف' : 'idk')}
-                disabled={sending || sessionLocked}
-                className="text-xs font-black text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:underline uppercase tracking-wide transition-all disabled:opacity-50"
-              >
-                {t("iDontKnowBtn")}
-              </button>
-            </div>
           </div>
         )}
       </div>
