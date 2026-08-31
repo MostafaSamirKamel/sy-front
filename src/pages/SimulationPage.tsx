@@ -681,23 +681,30 @@ export default function SimulationPage() {
   };
 
   const loadSession = useCallback(async () => {
-    const res = await api.get(`/sessions/${sessionId}`);
-    const s = res.data.session as Session;
-    setSession(s);
-    const sessionLang = (s.language || 'AUTO').toUpperCase();
-    if (sessionLang === 'AR' || sessionLang === 'EN' || sessionLang === 'AUTO') {
-      setLang(sessionLang);
+    try {
+      const res = await api.get(`/sessions/${sessionId}`);
+      const s = res.data.session as Session;
+      setSession(s);
+      const sessionLang = (s.language || 'AUTO').toUpperCase();
+      if (sessionLang === 'AR' || sessionLang === 'EN' || sessionLang === 'AUTO') {
+        setLang(sessionLang);
+      }
+      setActiveManeuver(s.activeManeuver);
+      setCompletedManeuvers(parseJsonArray(s.completedManeuvers, []));
+      if (s.result) {
+        setResult(s.result);
+        setRankProgress(parseRankSnapshot(s.result.xpRankSnapshot));
+        setActiveStage("feedback");
+      } else {
+        setActiveStage(s.currentStage || "history");
+      }
+    } catch (err) {
+      // Session not found or access denied — redirect to dashboard
+      if (axios.isAxiosError(err) && (err.response?.status === 404 || err.response?.status === 403)) {
+        navigate('/dashboard', { replace: true });
+      }
     }
-    setActiveManeuver(s.activeManeuver);
-    setCompletedManeuvers(parseJsonArray(s.completedManeuvers, []));
-    if (s.result) {
-      setResult(s.result);
-      setRankProgress(parseRankSnapshot(s.result.xpRankSnapshot));
-      setActiveStage("feedback");
-    } else {
-      setActiveStage(s.currentStage || "history");
-    }
-  }, [sessionId]);
+  }, [sessionId, navigate]);
 
   const updateSpeechLanguage = useCallback(
     async (next: "AUTO" | "AR" | "EN") => {
