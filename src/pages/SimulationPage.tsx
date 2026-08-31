@@ -1542,9 +1542,19 @@ function ExaminationView({
   const currentMedia = displayImages[Math.min(activeMediaIndex, displayImages.length - 1)] || displayImages[0];
   const mediaType = inferMediaType(currentMedia);
 
-  const examinerMessages = messages.filter((m) => m.role === 'EXAMINER');
-  const latestExaminerMsg = examinerMessages[examinerMessages.length - 1]?.content || '';
-  const latestStudentMsg = messages[messages.length - 1]?.role === 'STUDENT' ? messages[messages.length - 1]?.content : '';
+  // Separate opening maneuver instruction from active chat turns
+  const isOpeningInstruction = (content: string) =>
+    /I am evaluating your clinical|Describe your findings systematically|Look at the patient and images carefully|evaluating your clinical/i.test(
+      content,
+    );
+
+  const initialInstructionMsg = messages.find(
+    (m) => m.role === 'EXAMINER' && isOpeningInstruction(m.content),
+  );
+
+  const activeChatMessages = initialInstructionMsg
+    ? messages.filter((m) => m !== initialInstructionMsg)
+    : messages;
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto bg-slate-100/70 dark:bg-slate-950 p-3 sm:p-5">
@@ -1642,6 +1652,23 @@ function ExaminationView({
           )}
         </div>
 
+        {/* Card 2.5: Examiner Guidance Instruction (Placed OUTSIDE the interactive chat) */}
+        {initialInstructionMsg && (
+          <div className="rounded-2xl border border-amber-200/80 dark:border-amber-900/50 bg-amber-50/70 dark:bg-amber-950/30 p-3.5 sm:p-4 shadow-xs space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="p-1 rounded-md bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300">
+                <Sparkles size={14} />
+              </span>
+              <p className="text-[11px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                {t("clinicalExaminer")} · {activeManeuverMeta.nameEn} Guidance
+              </p>
+            </div>
+            <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-100 leading-relaxed" dir="auto">
+              {initialInstructionMsg.content}
+            </p>
+          </div>
+        )}
+
         {/* Card 3: Clinical Examiner Conversation Flow (Chronological: Question -> Student Answer -> Next Question) */}
         <div className="rounded-2xl bg-slate-600/90 dark:bg-slate-800 p-3 sm:p-4 shadow-xs space-y-3">
           <div className="flex items-center justify-between px-1">
@@ -1657,14 +1684,16 @@ function ExaminationView({
           </div>
 
           <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
-            {messages.length === 0 ? (
+            {activeChatMessages.length === 0 ? (
               <div className="rounded-xl bg-white dark:bg-slate-900 p-4 text-slate-800 dark:text-slate-100 shadow-xs">
-                <p className="text-sm sm:text-base font-bold leading-relaxed" dir="auto">
-                  {t("examinerWillStart")}
+                <p className="text-xs sm:text-sm font-bold leading-relaxed text-slate-600 dark:text-slate-300" dir="auto">
+                  {isAr
+                    ? "ابدأ بوصف أو نطق ملاحظاتك السريرية أدناه، أو اسأل الممتحن..."
+                    : "Type or speak your clinical observations below to start..."}
                 </p>
               </div>
             ) : (
-              messages.map((m, idx) => {
+              activeChatMessages.map((m, idx) => {
                 const isStudent = m.role === 'STUDENT';
                 return (
                   <div
