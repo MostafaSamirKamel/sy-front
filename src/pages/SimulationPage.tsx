@@ -571,14 +571,21 @@ export default function SimulationPage() {
   useEffect(() => {
     if (!sessionId) return;
     let cancelled = false;
-    void api.get(`/sessions/${sessionId}/voice-provider`)
+    void api
+      .get(`/sessions/${sessionId}/voice-provider`, {
+        validateStatus: (status) => status < 500,
+      })
       .then((response) => {
-        if (!cancelled && response.data?.provider === 'openrouter_audio') setVoiceProvider('openrouter_audio');
+        if (!cancelled && response.data?.provider === 'openrouter_audio') {
+          setVoiceProvider('openrouter_audio');
+        }
       })
       .catch(() => {
-        // Realtime remains the default; voice failures retain its existing fallback.
+        // Realtime remains default
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [sessionId]);
 
   useEffect(() => {
