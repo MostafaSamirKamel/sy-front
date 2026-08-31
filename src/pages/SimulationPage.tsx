@@ -1661,27 +1661,38 @@ function ExaminationView({
           </div>
         )}
 
-        {/* Card 3: Clinical Examiner Conversation Flow (Chronological: Question -> Student Answer -> Next Question) */}
-        <div className="rounded-2xl bg-slate-600/90 dark:bg-slate-800 p-3 sm:p-4 shadow-xs space-y-3">
-          <div className="flex items-center justify-between px-1">
-            <p className="text-[11px] font-black uppercase tracking-wider text-amber-400">
-              {t("clinicalExaminer")}
-            </p>
+        {/* Card 3: Clinical Examiner Conversation Flow (Realistic Medical Chat) */}
+        <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 p-4 sm:p-5 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-teal-50 dark:bg-teal-950/80 border border-teal-200 dark:border-teal-800 flex items-center justify-center text-teal-600 dark:text-teal-400 font-bold text-xs">
+                <Stethoscope size={16} />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wide">
+                  {t("clinicalExaminer")}
+                </p>
+                <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Interactive Examination Chat</span>
+                </div>
+              </div>
+            </div>
             {isLiveCall && (
-              <span className="text-[10px] font-bold text-emerald-400 animate-pulse flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="text-[10px] font-bold text-emerald-500 animate-pulse flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 LIVE CALL
               </span>
             )}
           </div>
 
-          <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+          <div className="space-y-3 max-h-95 overflow-y-auto pr-1">
             {activeChatMessages.length === 0 ? (
-              <div className="rounded-xl bg-white dark:bg-slate-900 p-4 text-slate-800 dark:text-slate-100 shadow-xs">
-                <p className="text-xs sm:text-sm font-bold leading-relaxed text-slate-600 dark:text-slate-300" dir="auto">
+              <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/40 p-5 text-center border border-dashed border-slate-200 dark:border-slate-700">
+                <p className="text-xs sm:text-sm font-semibold leading-relaxed text-slate-500 dark:text-slate-400" dir="auto">
                   {isAr
-                    ? "ابدأ بوصف أو نطق ملاحظاتك السريرية أدناه، أو اسأل الممتحن..."
-                    : "Type or speak your clinical observations below to start..."}
+                    ? "ابدأ بوصف أو نطق ملاحظاتك السريرية أدناه للرد على الممتحن..."
+                    : "Type or speak your clinical observations below to start the examination..."}
                 </p>
               </div>
             ) : (
@@ -1690,34 +1701,47 @@ function ExaminationView({
                 return (
                   <div
                     key={m.id || idx}
-                    className={`flex ${isStudent ? 'justify-end' : 'justify-start'}`}
+                    className={`flex items-end gap-2 ${isStudent ? 'justify-end' : 'justify-start'}`}
                   >
+                    {!isStudent && (
+                      <div className="w-7 h-7 rounded-full bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 flex items-center justify-center shrink-0 mb-1 text-[10px] font-black uppercase">
+                        Ex
+                      </div>
+                    )}
                     <div
-                      className={`max-w-[92%] sm:max-w-[88%] p-3.5 sm:p-4 rounded-2xl text-sm sm:text-base font-semibold leading-relaxed shadow-xs ${
+                      className={`max-w-[88%] sm:max-w-[82%] px-4 py-3 rounded-2xl text-sm sm:text-base font-semibold leading-relaxed shadow-xs transition-all ${
                         isStudent
-                          ? 'bg-teal-700 text-white rounded-br-xs'
-                          : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-bl-xs border border-slate-100 dark:border-slate-800'
+                          ? 'bg-linear-to-br from-teal-700 to-teal-600 text-white rounded-br-xs'
+                          : 'bg-slate-100 dark:bg-slate-800/90 text-slate-800 dark:text-slate-100 rounded-bl-xs border border-slate-200/60 dark:border-slate-700/60'
                       }`}
                       dir="auto"
                     >
                       {!isStudent && (
-                        <p className="text-[10px] font-black uppercase tracking-wider text-amber-500 mb-1">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1">
                           {t("clinicalExaminer")}
                         </p>
                       )}
-                      <div className="whitespace-pre-line font-bold">
+                      <div className="whitespace-pre-line">
                         {m.content}
                       </div>
                     </div>
+                    {isStudent && (
+                      <div className="w-7 h-7 rounded-full bg-teal-800 text-white flex items-center justify-center shrink-0 mb-1 text-[10px] font-black uppercase">
+                        Dr
+                      </div>
+                    )}
                   </div>
                 );
               })
             )}
 
             {sending && (
-              <div className="flex justify-start">
-                <div className="rounded-xl bg-white dark:bg-slate-900 px-4 py-2.5 flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 shadow-xs">
-                  <Loader2 size={15} className="animate-spin text-amber-500" />
+              <div className="flex items-end gap-2 justify-start">
+                <div className="w-7 h-7 rounded-full bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 flex items-center justify-center shrink-0 mb-1 text-[10px] font-black uppercase">
+                  Ex
+                </div>
+                <div className="rounded-2xl rounded-bl-xs bg-slate-100 dark:bg-slate-800/90 border border-slate-200/60 dark:border-slate-700/60 px-4 py-2.5 flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-xs">
+                  <Loader2 size={15} className="animate-spin text-teal-600" />
                   <span>{t("examinerTyping")}</span>
                 </div>
               </div>

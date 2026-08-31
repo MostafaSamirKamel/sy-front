@@ -223,12 +223,8 @@ function ensureSpace(doc: jsPDF, y: number, needed: number): number {
 }
 
 function drawPageBackground(doc: jsPDF) {
-  doc.setFillColor(252, 251, 247);
+  doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, PAGE_W, PAGE_H, 'F');
-  // Outer certificate border
-  doc.setDrawColor(232, 228, 216);
-  doc.setLineWidth(0.6);
-  doc.roundedRect(MARGIN - 4, MARGIN - 4, CONTENT_W + 8, PAGE_H - (MARGIN * 2) + 8, 4, 4, 'S');
 }
 
 function drawHeader(
@@ -238,42 +234,40 @@ function drawHeader(
   isAr: boolean,
 ): number {
   drawPageBackground(doc);
-  const y = MARGIN + 4;
+  const y = MARGIN + 2;
   const x = textX(isAr);
-  let headerBottom = y + 6;
 
-  // synoza logotype
+  // synoza logotype in deep teal / slate
   doc.setFont('Cairo', 'bold');
   doc.setFontSize(22);
-  doc.setTextColor(18, 36, 43);
+  doc.setTextColor(13, 148, 136); // Teal #0d9488
   doc.text('synoza', x, y + 4, { align: isAr ? 'right' : 'left' });
-  headerBottom = y + 6;
 
   // Subtitle
   doc.setFont('Cairo', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(100, 116, 139);
-  doc.text('OSCE Evaluation Certificate', x, headerBottom + 3, { align: isAr ? 'right' : 'left' });
+  doc.text('OSCE Clinical Assessment & Simulation Platform', x, y + 9.5, { align: isAr ? 'right' : 'left' });
 
   // Official Evaluation Report on the right
   const rightX = isAr ? MARGIN : PAGE_W - MARGIN;
   doc.setFont('Cairo', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(51, 65, 85);
-  doc.text(prepareText(labels.officialReport || 'Official Evaluation Report', isAr), rightX, y + 2, {
+  doc.setFontSize(9.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text(prepareText(labels.officialReport || 'Official Evaluation Report', isAr), rightX, y + 3, {
     align: isAr ? 'left' : 'right',
   });
 
-  // Terracotta accent line under Official Evaluation Report
-  const lineW = 32;
+  // Teal accent line under Official Evaluation Report
+  const lineW = 34;
   const lineStartX = isAr ? MARGIN : PAGE_W - MARGIN - lineW;
-  doc.setDrawColor(194, 94, 74);
+  doc.setDrawColor(13, 148, 136);
   doc.setLineWidth(1.2);
-  doc.line(lineStartX, y + 5, lineStartX + lineW, y + 5);
+  doc.line(lineStartX, y + 6, lineStartX + lineW, y + 6);
 
-  const dividerY = headerBottom + 8;
-  doc.setDrawColor(232, 228, 216);
-  doc.setLineWidth(0.4);
+  const dividerY = y + 13;
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.5);
   doc.line(MARGIN, dividerY, PAGE_W - MARGIN, dividerY);
   return dividerY + 5;
 }
@@ -285,104 +279,105 @@ function drawMeta(
   y: number,
   isAr: boolean,
 ): number {
-  doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(236, 231, 220);
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(226, 232, 240);
   doc.setLineWidth(0.4);
-  doc.roundedRect(MARGIN, y, CONTENT_W, 24, 3, 3, 'FD');
+  doc.roundedRect(MARGIN, y, CONTENT_W, 23, 3, 3, 'FD');
 
   const colW = (CONTENT_W - 32) / 2;
 
   // Station
   doc.setFont('Cairo', 'bold');
   doc.setFontSize(6.5);
-  doc.setTextColor(148, 163, 184);
-  doc.text('STATION', MARGIN + 4, y + 5);
+  doc.setTextColor(100, 116, 139);
+  doc.text('STATION', MARGIN + 5, y + 5);
   doc.setFontSize(8.5);
-  doc.setTextColor(18, 36, 43);
-  doc.text(data.stationTitle.slice(0, 36), MARGIN + 4, y + 10);
+  doc.setTextColor(15, 23, 42);
+  doc.text(data.stationTitle.slice(0, 36), MARGIN + 5, y + 9.5);
 
   // Date
   doc.setFont('Cairo', 'bold');
   doc.setFontSize(6.5);
-  doc.setTextColor(148, 163, 184);
-  doc.text('DATE', MARGIN + 4, y + 16);
+  doc.setTextColor(100, 116, 139);
+  doc.text('DATE & TIME', MARGIN + 5, y + 15.5);
   doc.setFont('Cairo', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(51, 65, 85);
-  doc.text(dateStr, MARGIN + 4, y + 20.5);
+  doc.text(dateStr, MARGIN + 5, y + 19.5);
 
   // Divider between col 1 & 2
-  doc.setDrawColor(241, 245, 249);
-  doc.line(MARGIN + colW + 4, y + 3, MARGIN + colW + 4, y + 21);
+  doc.setDrawColor(226, 232, 240);
+  doc.line(MARGIN + colW + 4, y + 3, MARGIN + colW + 4, y + 20);
 
   // Patient
   doc.setFont('Cairo', 'bold');
   doc.setFontSize(6.5);
-  doc.setTextColor(148, 163, 184);
-  doc.text('PATIENT', MARGIN + colW + 8, y + 5);
+  doc.setTextColor(100, 116, 139);
+  doc.text('PATIENT ENCOUNTER', MARGIN + colW + 8, y + 5);
   doc.setFontSize(8.5);
-  doc.setTextColor(18, 36, 43);
-  doc.text(data.patientName.slice(0, 32), MARGIN + colW + 8, y + 10);
+  doc.setTextColor(15, 23, 42);
+  doc.text(data.patientName.slice(0, 32), MARGIN + colW + 8, y + 9.5);
 
   // Session ID
   doc.setFont('Cairo', 'bold');
   doc.setFontSize(6.5);
-  doc.setTextColor(148, 163, 184);
-  doc.text('SESSION ID', MARGIN + colW + 8, y + 16);
+  doc.setTextColor(100, 116, 139);
+  doc.text('SESSION ID', MARGIN + colW + 8, y + 15.5);
   doc.setFont('Cairo', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(71, 85, 105);
-  doc.text(data.sessionId.slice(0, 12), MARGIN + colW + 8, y + 20.5);
+  doc.text(data.sessionId.slice(0, 14), MARGIN + colW + 8, y + 19.5);
 
-  // Seal Badge on Right
+  // Small Verified Badge on Right
   const sealCx = PAGE_W - MARGIN - 14;
-  const sealCy = y + 12;
-  doc.setFillColor(233, 241, 235);
-  doc.setDrawColor(118, 155, 130);
+  const sealCy = y + 11.5;
+  doc.setFillColor(240, 253, 250);
+  doc.setDrawColor(13, 148, 136);
   doc.setLineWidth(0.6);
-  doc.circle(sealCx, sealCy, 9, 'FD');
+  doc.circle(sealCx, sealCy, 8.5, 'FD');
 
   doc.setFont('Cairo', 'bold');
-  doc.setFontSize(5.5);
-  doc.setTextColor(45, 82, 57);
-  doc.text('SYNOZA', sealCx, sealCy - 2.5, { align: 'center' });
-  doc.setFontSize(4.5);
-  doc.text('CERTIFIED', sealCx, sealCy + 0.5, { align: 'center' });
   doc.setFontSize(5);
-  doc.text('OSCE', sealCx, sealCy + 3.5, { align: 'center' });
+  doc.setTextColor(13, 148, 136);
+  doc.text('SYNOZA', sealCx, sealCy - 2.2, { align: 'center' });
+  doc.setFontSize(4);
+  doc.text('CERTIFIED', sealCx, sealCy + 0.6, { align: 'center' });
+  doc.setFontSize(4.5);
+  doc.text('OSCE', sealCx, sealCy + 3.4, { align: 'center' });
 
-  return y + 28;
+  return y + 27;
 }
 
 function drawScores(doc: jsPDF, data: OsceReportData, y: number, isAr: boolean): number {
   const total = Number(data.result.totalScore ?? 0);
   const scores = [
     ['Communication', Number(data.result.communicationScore ?? 0)],
-    ['History', Number(data.result.historyTakingScore ?? 0)],
+    ['History Taking', Number(data.result.historyTakingScore ?? 0)],
     ['Clinical Reasoning', Number(data.result.clinicalReasonScore ?? 0)],
     ['Organization', Number(data.result.organizationScore ?? 0)],
     ['Closing', Number(data.result.closingScore ?? 0)],
   ] as const;
 
-  doc.setFillColor(250, 245, 236);
-  doc.setDrawColor(235, 226, 206);
-  doc.setLineWidth(0.4);
-  doc.roundedRect(MARGIN, y, CONTENT_W, 26, 3, 3, 'FD');
+  doc.setFillColor(240, 253, 250); // Light teal tint
+  doc.setDrawColor(204, 251, 241);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(MARGIN, y, CONTENT_W, 25, 3, 3, 'FD');
 
   // Total Score on Left
   doc.setFont('Cairo', 'bold');
-  doc.setFontSize(7);
-  doc.setTextColor(100, 116, 139);
-  doc.text('TOTAL SCORE', MARGIN + 6, y + 8);
+  doc.setFontSize(6.5);
+  doc.setTextColor(13, 148, 136);
+  doc.text('OVERALL SCORE', MARGIN + 6, y + 7);
 
   doc.setFont('Cairo', 'bold');
-  doc.setFontSize(22);
-  doc.setTextColor(27, 67, 50);
-  doc.text(`${total}%`, MARGIN + 6, y + 19);
+  doc.setFontSize(20);
+  const [tr, tg, tb] = scoreColor(total);
+  doc.setTextColor(tr, tg, tb);
+  doc.text(`${total}%`, MARGIN + 6, y + 18);
 
   // Vertical divider
-  doc.setDrawColor(235, 226, 206);
-  doc.line(MARGIN + 36, y + 4, MARGIN + 36, y + 22);
+  doc.setDrawColor(204, 251, 241);
+  doc.line(MARGIN + 36, y + 4, MARGIN + 36, y + 21);
 
   // 5 Category columns
   const gridStartX = MARGIN + 40;
@@ -396,15 +391,16 @@ function drawScores(doc: jsPDF, data: OsceReportData, y: number, isAr: boolean):
     doc.setFontSize(6);
     doc.setTextColor(71, 85, 105);
     const labelLines = doc.splitTextToSize(label, colW - 2) as string[];
-    doc.text(labelLines.slice(0, 2), cx, y + 8, { align: 'center' });
+    doc.text(labelLines.slice(0, 2), cx, y + 7.5, { align: 'center' });
 
     doc.setFont('Cairo', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(18, 36, 43);
-    doc.text(`${value}%`, cx, y + 19, { align: 'center' });
+    doc.setFontSize(9.5);
+    const [r, g, b] = scoreColor(value);
+    doc.setTextColor(r, g, b);
+    doc.text(`${value}%`, cx, y + 18, { align: 'center' });
   });
 
-  return y + 31;
+  return y + 29;
 }
 
 function drawSection(
@@ -418,154 +414,216 @@ function drawSection(
 
   const prepared = prepareText(stripMarkdown(body), isAr);
   const bodyLines = doc.splitTextToSize(prepared, CONTENT_W - 42) as string[];
-  const minBoxH = 16;
-  const calculatedH = 10 + bodyLines.length * 4.4;
+  const minBoxH = 14;
+  const calculatedH = 8 + bodyLines.length * 4.2;
   const boxH = Math.max(minBoxH, calculatedH);
 
   y = ensureSpace(doc, y, boxH + 4);
 
   doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(236, 231, 220);
+  doc.setDrawColor(226, 232, 240);
   doc.setLineWidth(0.4);
-  doc.roundedRect(MARGIN, y, CONTENT_W, boxH, 3, 3, 'FD');
+  doc.roundedRect(MARGIN, y, CONTENT_W, boxH, 2.5, 2.5, 'FD');
 
-  // Dark badge circle
-  const badgeCx = MARGIN + 8;
-  const badgeCy = y + 7;
-  doc.setFillColor(18, 43, 52);
-  doc.circle(badgeCx, badgeCy, 4.5, 'F');
-
-  // Title
+  // Title on Left
   doc.setFont('Cairo', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(18, 36, 43);
-  const titleLines = doc.splitTextToSize(title, 26) as string[];
-  doc.text(titleLines.slice(0, 2), MARGIN + 14, y + 6);
+  doc.setFontSize(7);
+  doc.setTextColor(13, 148, 136); // Teal header
+  const titleLines = doc.splitTextToSize(title, 28) as string[];
+  doc.text(titleLines.slice(0, 2), MARGIN + 5, y + 6);
 
   // Vertical divider between title and content
-  doc.setDrawColor(226, 232, 240);
-  doc.setLineWidth(0.3);
-  doc.line(MARGIN + 36, y + 3, MARGIN + 36, y + boxH - 3);
+  doc.setDrawColor(241, 245, 249);
+  doc.setLineWidth(0.4);
+  doc.line(MARGIN + 34, y + 3, MARGIN + 34, y + boxH - 3);
 
   // Content text
   doc.setFont('Cairo', 'normal');
-  doc.setFontSize(7.5);
+  doc.setFontSize(7);
   doc.setTextColor(51, 65, 85);
-  let lineY = y + 6.5;
+  let lineY = y + 6;
   for (const line of bodyLines) {
-    doc.text(line, MARGIN + 40, lineY, { maxWidth: CONTENT_W - 44 });
-    lineY += 4.4;
+    doc.text(line, MARGIN + 38, lineY, { maxWidth: CONTENT_W - 42 });
+    lineY += 4.2;
   }
 
-  return y + boxH + 3.5;
+  return y + boxH + 3;
+}
+
+/** Draws the clean "Full AI Report" card matching the user's reference design. */
+function drawFullAiReportCard(
+  doc: jsPDF,
+  data: OsceReportData,
+  y: number,
+  isAr: boolean,
+): number {
+  const fullReportText = String(data.result.fullReport ?? '').trim();
+  const summaryParagraphs: Array<{ subtitle: string; content: string }> = [];
+
+  // Parse structured report sections or generate comprehensive clinical summary
+  const overview = String(data.result.recommendations ?? data.result.idealApproach ?? '').slice(0, 300);
+  const communication = String(data.result.strengths ?? '').slice(0, 250);
+  const historyTaking = String(data.result.weaknesses ?? '').slice(0, 250);
+  const clinicalExam = String(data.result.missedQuestions ?? '').slice(0, 250);
+  const reasoning = String(data.result.clinicalErrors ?? '').slice(0, 250);
+
+  if (fullReportText && !fullReportText.startsWith('##')) {
+    summaryParagraphs.push({ subtitle: 'Clinical Performance Summary', content: fullReportText });
+  } else {
+    summaryParagraphs.push({
+      subtitle: 'Overview:',
+      content:
+        overview ||
+        'The candidate completed the interactive clinical OSCE session covering systematic history taking and physical examination findings.',
+    });
+    if (communication) {
+      summaryParagraphs.push({ subtitle: 'Communication and Professionalism:', content: `• ${communication}` });
+    }
+    if (historyTaking) {
+      summaryParagraphs.push({ subtitle: 'History Taking:', content: `• ${historyTaking}` });
+    }
+    if (clinicalExam) {
+      summaryParagraphs.push({ subtitle: 'Clinical Examination:', content: `• ${clinicalExam}` });
+    }
+    if (reasoning) {
+      summaryParagraphs.push({ subtitle: 'Clinical Reasoning and Management:', content: `• ${reasoning}` });
+    }
+    summaryParagraphs.push({
+      subtitle: 'Final Comment:',
+      content:
+        'Structured systematic review and active engagement with examiner prompts are essential to achieve full clinical competence in OSCE settings.',
+    });
+  }
+
+  // Measure needed space
+  let totalLinesCount = 6;
+  for (const p of summaryParagraphs) {
+    const lines = doc.splitTextToSize(p.content, CONTENT_W - 12) as string[];
+    totalLinesCount += lines.length + 2;
+  }
+
+  const boxH = Math.min(220, Math.max(70, totalLinesCount * 3.8 + 14));
+  y = ensureSpace(doc, y, boxH + 6);
+
+  // Outer Box with clean light gray/teal border
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(204, 251, 241);
+  doc.setLineWidth(0.6);
+  doc.roundedRect(MARGIN, y, CONTENT_W, boxH, 3, 3, 'FD');
+
+  // Top Card Header: "Full AI Report" in Teal
+  doc.setFont('Cairo', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(13, 148, 136); // Teal
+  doc.text('Full AI Report', MARGIN + 6, y + 6);
+
+  // Dividing line under header
+  doc.setDrawColor(204, 251, 241);
+  doc.setLineWidth(0.4);
+  doc.line(MARGIN + 6, y + 8.5, MARGIN + CONTENT_W - 6, y + 8.5);
+
+  // Subtitle: Clinical Performance Summary
+  doc.setFont('Cairo', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(30, 41, 59);
+  doc.text('Clinical Performance Summary', MARGIN + 6, y + 13.5);
+
+  let curY = y + 18;
+  for (const item of summaryParagraphs) {
+    if (curY > y + boxH - 8) break;
+
+    doc.setFont('Cairo', 'bold');
+    doc.setFontSize(6.8);
+    doc.setTextColor(51, 65, 85);
+    doc.text(prepareText(item.subtitle, isAr), MARGIN + 6, curY);
+    curY += 3.8;
+
+    doc.setFont('Cairo', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(71, 85, 105);
+    const contentLines = doc.splitTextToSize(prepareText(item.content, isAr), CONTENT_W - 12) as string[];
+    for (const l of contentLines) {
+      if (curY > y + boxH - 6) break;
+      doc.text(l, MARGIN + 6, curY);
+      curY += 3.5;
+    }
+    curY += 1.8;
+  }
+
+  return y + boxH + 4;
 }
 
 function drawFooter(doc: jsPDF, y: number, isAr: boolean): number {
-  y = ensureSpace(doc, y, 32);
+  y = ensureSpace(doc, y, 28);
 
-  // Doctor Signature in Navy ink
-  doc.setDrawColor(30, 58, 138);
-  doc.setLineWidth(0.45);
-  // Signature flourish curve
-  doc.lines(
-    [
-      [-2, -5, -1, -9, 2, -10],
-      [3, 2, 2, 6, 0, 9],
-      [-2, 3, 2, 5, 4, 1],
-      [3, -8, 6, -9, 8, -6],
-      [2, 3, 2, 6, 3, 7],
-      [3, -4, 6, -5, 8, -2],
-      [2, 3, 2, 5, 4, 3],
-      [4, -3, 7, -2, 10, 1],
-      [3, 3, 2, 4, 5, 1],
-      [4, -3, 8, -2, 12, 0],
-    ],
-    MARGIN + 12,
-    y + 11,
-    [1, 1],
-  );
-  // Underline flourish
-  doc.setLineWidth(0.35);
-  doc.line(MARGIN + 8, y + 9, MARGIN + 42, y + 8);
-  doc.line(MARGIN + 14, y + 12, MARGIN + 38, y + 10.5);
+  const footerY = Math.max(y, PAGE_H - MARGIN - 22);
 
-  // Doctor Name
-  doc.setDrawColor(212, 206, 189);
-  doc.setLineWidth(0.25);
-  doc.line(MARGIN + 6, y + 14, MARGIN + 44, y + 14);
+  // Divider
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.4);
+  doc.line(MARGIN, footerY, PAGE_W - MARGIN, footerY);
 
-  doc.setFont('Cairo', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(18, 36, 43);
-  doc.text('Dr. Mahmoud Nasser', MARGIN + 6, y + 18);
-
-  // Center: Connected Nodes Logo & Slogan with Dividers
-  const midX = PAGE_W / 2;
-  doc.setDrawColor(212, 206, 189);
-  doc.setLineWidth(0.25);
-  doc.line(midX - 26, y + 6, midX - 26, y + 18);
-  doc.line(midX + 26, y + 6, midX + 26, y + 18);
-
-  // Connected triangle icon
-  doc.setFillColor(63, 103, 102);
-  doc.circle(midX, y + 7, 0.8, 'F');
-  doc.circle(midX - 2.2, y + 11, 0.8, 'F');
-  doc.circle(midX + 2.2, y + 11, 0.8, 'F');
-  doc.setDrawColor(63, 103, 102);
-  doc.setLineWidth(0.3);
-  doc.line(midX, y + 7, midX - 2.2, y + 11);
-  doc.line(midX, y + 7, midX + 2.2, y + 11);
-  doc.line(midX - 2.2, y + 11, midX + 2.2, y + 11);
-
+  // Left: Official Report Label & Date
+  const dateStr = new Date().toLocaleString(isAr ? 'ar-EG' : 'en-GB', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
   doc.setFont('Cairo', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(100, 116, 139);
-  doc.text('Building Clinical Connections', midX, y + 16, { align: 'center' });
+  doc.text('Synoza — Official Evaluation Report', MARGIN, footerY + 6);
+  doc.setFontSize(6.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text(dateStr, MARGIN, footerY + 10.5);
 
-  // Official Green Scalloped Seal Stamp on Right
-  const sealCx = PAGE_W - MARGIN - 18;
-  const sealCy = y + 11;
+  // Center: Doctor Signature in Navy ink
+  const midX = PAGE_W / 2 - 14;
+  doc.setDrawColor(30, 58, 138);
+  doc.setLineWidth(0.4);
+  doc.lines(
+    [
+      [-2, -4, -1, -7, 2, -8],
+      [2, 2, 2, 5, 0, 7],
+      [-2, 2, 2, 4, 3, 1],
+      [2, -6, 5, -7, 7, -5],
+      [2, 2, 2, 5, 2, 6],
+      [2, -3, 5, -4, 7, -2],
+      [2, 2, 2, 4, 3, 2],
+    ],
+    midX + 6,
+    footerY + 9,
+    [1, 1],
+  );
+  doc.line(midX + 2, footerY + 8, midX + 26, footerY + 7);
+  doc.setFont('Cairo', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text('Dr. Mahmoud Nasser', midX + 2, footerY + 14);
 
-  // Outer Rosette / scalloped look with outer circle & dash
-  doc.setDrawColor(80, 128, 107);
-  doc.setLineWidth(0.6);
+  // Right: Double-circle Teal/Cyan Seal badge matching screenshot
+  const sealCx = PAGE_W - MARGIN - 14;
+  const sealCy = footerY + 10;
+
+  // Outer thick teal circle
+  doc.setDrawColor(13, 148, 136); // #0d9488
+  doc.setLineWidth(0.75);
   doc.circle(sealCx, sealCy, 9.5, 'S');
 
-  doc.setDrawColor(80, 128, 107);
+  // Inner thin teal circle
   doc.setLineWidth(0.3);
   doc.circle(sealCx, sealCy, 8.2, 'S');
 
-  doc.setLineWidth(0.2);
-  doc.circle(sealCx, sealCy, 6.2, 'S');
-
   // Seal Text
   doc.setFont('Cairo', 'bold');
-  doc.setFontSize(3.8);
-  doc.setTextColor(80, 128, 107);
-  doc.text('★ SYNOZA PLATFORM ★', sealCx, sealCy - 3.8, { align: 'center' });
-
-  // Center 3-node propeller emblem in seal
-  doc.setFillColor(80, 128, 107);
-  doc.circle(sealCx, sealCy - 0.2, 0.7, 'F');
-  doc.circle(sealCx - 1.2, sealCy + 1.2, 0.6, 'F');
-  doc.circle(sealCx + 1.2, sealCy + 1.2, 0.6, 'F');
-  doc.circle(sealCx, sealCy - 1.5, 0.6, 'F');
-
+  doc.setFontSize(4.5);
+  doc.setTextColor(13, 148, 136);
+  doc.text('SYNOZA', sealCx, sealCy - 2.5, { align: 'center' });
   doc.setFontSize(3.5);
-  doc.text('• OFFICIAL DOCUMENT •', sealCx, sealCy + 4.2, { align: 'center' });
+  doc.text('CERTIFIED', sealCx, sealCy + 0.6, { align: 'center' });
+  doc.setFontSize(4);
+  doc.text('OSCE', sealCx, sealCy + 3.6, { align: 'center' });
 
-  // Bottom Security Ribbon
-  const ribbonY = PAGE_H - MARGIN + 3.5;
-  doc.setFillColor(18, 36, 43);
-  doc.rect(MARGIN - 4, ribbonY - 4, CONTENT_W + 8, 8, 'F');
-
-  doc.setFont('Cairo', 'normal');
-  doc.setFontSize(6.5);
-  doc.setTextColor(203, 213, 225);
-  doc.text('SECURE · VERIFIED · TRUSTED', MARGIN + 2, ribbonY + 1);
-  doc.text('WWW.SYNOZAA.COM', PAGE_W / 2, ribbonY + 1, { align: 'center' });
-
-  return ribbonY;
+  return footerY + 20;
 }
 
 export async function downloadOsceReportPdf(data: OsceReportData): Promise<void> {
@@ -595,6 +653,9 @@ export async function downloadOsceReportPdf(data: OsceReportData): Promise<void>
   for (const [title, body] of sections) {
     y = drawSection(doc, title, body, y, isAr);
   }
+
+  // Draw the Full AI Report Card as shown in the screenshot
+  y = drawFullAiReportCard(doc, data, y + 2, isAr);
 
   drawFooter(doc, y + 4, isAr);
 
