@@ -450,26 +450,40 @@ function drawSection(
   return y + boxH + 3;
 }
 
-/** Draws the clean "Full AI Report" card matching the user's reference design. */
-function drawFullAiReportCard(
-  doc: jsPDF,
+function parseFullReportParagraphs(
   data: OsceReportData,
-  y: number,
-  isAr: boolean,
-): number {
+): Array<{ subtitle: string; content: string }> {
   const fullReportText = String(data.result.fullReport ?? '').trim();
   const summaryParagraphs: Array<{ subtitle: string; content: string }> = [];
 
-  // Parse structured report sections or generate comprehensive clinical summary
-  const overview = String(data.result.recommendations ?? data.result.idealApproach ?? '').slice(0, 300);
-  const communication = String(data.result.strengths ?? '').slice(0, 250);
-  const historyTaking = String(data.result.weaknesses ?? '').slice(0, 250);
-  const clinicalExam = String(data.result.missedQuestions ?? '').slice(0, 250);
-  const reasoning = String(data.result.clinicalErrors ?? '').slice(0, 250);
+  if (fullReportText) {
+    const raw = stripMarkdown(fullReportText);
+    const parts = raw.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 0) {
+      for (const part of parts) {
+        const lines = part.split('\n').map((l) => l.trim()).filter(Boolean);
+        if (lines.length === 1 && lines[0].endsWith(':')) {
+          continue;
+        }
+        if (lines[0].includes(':') && lines[0].length < 50) {
+          const colonIdx = lines[0].indexOf(':');
+          const sub = lines[0].slice(0, colonIdx + 1).trim();
+          const rest = lines[0].slice(colonIdx + 1).trim() + (lines.slice(1).length ? '\n' + lines.slice(1).join('\n') : '');
+          summaryParagraphs.push({ subtitle: sub, content: rest });
+        } else {
+          summaryParagraphs.push({ subtitle: '', content: part });
+        }
+      }
+    }
+  }
 
-  if (fullReportText && !fullReportText.startsWith('##')) {
-    summaryParagraphs.push({ subtitle: 'Clinical Performance Summary', content: fullReportText });
-  } else {
+  if (summaryParagraphs.length === 0) {
+    const overview = String(data.result.recommendations ?? data.result.idealApproach ?? '').slice(0, 300);
+    const communication = String(data.result.strengths ?? '').slice(0, 250);
+    const historyTaking = String(data.result.weaknesses ?? '').slice(0, 250);
+    const clinicalExam = String(data.result.missedQuestions ?? '').slice(0, 250);
+    const reasoning = String(data.result.clinicalErrors ?? '').slice(0, 250);
+
     summaryParagraphs.push({
       subtitle: 'Overview:',
       content:
@@ -495,15 +509,27 @@ function drawFullAiReportCard(
     });
   }
 
-  // Measure needed space
-  let totalLinesCount = 6;
+  return summaryParagraphs;
+}
+
+/** Draws the clean "Full AI Report" card in PDF. */
+function drawFullAiReportCard(
+  doc: jsPDF,
+  data: OsceReportData,
+  y: number,
+  isAr: boolean,
+): number {
+  const summaryParagraphs = parseFullReportParagraphs(data);
+
+  let totalLinesCount = 4;
   for (const p of summaryParagraphs) {
+    if (p.subtitle) totalLinesCount += 1;
     const lines = doc.splitTextToSize(p.content, CONTENT_W - 12) as string[];
-    totalLinesCount += lines.length + 2;
+    totalLinesCount += lines.length + 1;
   }
 
-  const boxH = Math.min(220, Math.max(70, totalLinesCount * 3.8 + 14));
-  y = ensureSpace(doc, y, boxH + 6);
+  const boxH = Math.max(35, totalLinesCount * 4 + 14);
+  y = ensureSpace(doc, y, Math.min(boxH, 80));
 
   // Outer Box with clean light gray/teal border
   doc.setFillColor(255, 255, 255);
@@ -515,115 +541,35 @@ function drawFullAiReportCard(
   doc.setFont('Cairo', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(13, 148, 136); // Teal
-  doc.text('Full AI Report', MARGIN + 6, y + 6);
+  doc.text(data.labels.fullReport || 'Full AI Report', MARGIN + 6, y + 6);
 
   // Dividing line under header
   doc.setDrawColor(204, 251, 241);
   doc.setLineWidth(0.4);
   doc.line(MARGIN + 6, y + 8.5, MARGIN + CONTENT_W - 6, y + 8.5);
 
-  // Subtitle: Clinical Performance Summary
-  doc.setFont('Cairo', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(30, 41, 59);
-  doc.text('Clinical Performance Summary', MARGIN + 6, y + 13.5);
-
-  let curY = y + 18;
+  let curY = y + 14;
   for (const item of summaryParagraphs) {
-    if (curY > y + boxH - 8) break;
-
-    doc.setFont('Cairo', 'bold');
-    doc.setFontSize(6.8);
-    doc.setTextColor(51, 65, 85);
-    doc.text(prepareText(item.subtitle, isAr), MARGIN + 6, curY);
-    curY += 3.8;
+    if (item.subtitle) {
+      doc.setFont('Cairo', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(51, 65, 85);
+      doc.text(prepareText(item.subtitle, isAr), MARGIN + 6, curY);
+      curY += 4;
+    }
 
     doc.setFont('Cairo', 'normal');
-    doc.setFontSize(6.5);
+    doc.setFontSize(6.8);
     doc.setTextColor(71, 85, 105);
     const contentLines = doc.splitTextToSize(prepareText(item.content, isAr), CONTENT_W - 12) as string[];
     for (const l of contentLines) {
-      if (curY > y + boxH - 6) break;
       doc.text(l, MARGIN + 6, curY);
-      curY += 3.5;
+      curY += 3.8;
     }
-    curY += 1.8;
+    curY += 2;
   }
 
-  return y + boxH + 4;
-}
-
-function drawFooter(doc: jsPDF, y: number, isAr: boolean): number {
-  y = ensureSpace(doc, y, 28);
-
-  const footerY = Math.max(y, PAGE_H - MARGIN - 22);
-
-  // Divider
-  doc.setDrawColor(226, 232, 240);
-  doc.setLineWidth(0.4);
-  doc.line(MARGIN, footerY, PAGE_W - MARGIN, footerY);
-
-  // Left: Official Report Label & Date
-  const dateStr = new Date().toLocaleString(isAr ? 'ar-EG' : 'en-GB', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
-  doc.setFont('Cairo', 'normal');
-  doc.setFontSize(7);
-  doc.setTextColor(100, 116, 139);
-  doc.text('Synoza — Official Evaluation Report', MARGIN, footerY + 6);
-  doc.setFontSize(6.5);
-  doc.setTextColor(148, 163, 184);
-  doc.text(dateStr, MARGIN, footerY + 10.5);
-
-  // Center: Doctor Signature in Navy ink
-  const midX = PAGE_W / 2 - 14;
-  doc.setDrawColor(30, 58, 138);
-  doc.setLineWidth(0.4);
-  doc.lines(
-    [
-      [-2, -4, -1, -7, 2, -8],
-      [2, 2, 2, 5, 0, 7],
-      [-2, 2, 2, 4, 3, 1],
-      [2, -6, 5, -7, 7, -5],
-      [2, 2, 2, 5, 2, 6],
-      [2, -3, 5, -4, 7, -2],
-      [2, 2, 2, 4, 3, 2],
-    ],
-    midX + 6,
-    footerY + 9,
-    [1, 1],
-  );
-  doc.line(midX + 2, footerY + 8, midX + 26, footerY + 7);
-  doc.setFont('Cairo', 'bold');
-  doc.setFontSize(6.5);
-  doc.setTextColor(15, 23, 42);
-  doc.text('Dr. Mahmoud Nasser', midX + 2, footerY + 14);
-
-  // Right: Double-circle Teal/Cyan Seal badge matching screenshot
-  const sealCx = PAGE_W - MARGIN - 14;
-  const sealCy = footerY + 10;
-
-  // Outer thick teal circle
-  doc.setDrawColor(13, 148, 136); // #0d9488
-  doc.setLineWidth(0.75);
-  doc.circle(sealCx, sealCy, 9.5, 'S');
-
-  // Inner thin teal circle
-  doc.setLineWidth(0.3);
-  doc.circle(sealCx, sealCy, 8.2, 'S');
-
-  // Seal Text
-  doc.setFont('Cairo', 'bold');
-  doc.setFontSize(4.5);
-  doc.setTextColor(13, 148, 136);
-  doc.text('SYNOZA', sealCx, sealCy - 2.5, { align: 'center' });
-  doc.setFontSize(3.5);
-  doc.text('CERTIFIED', sealCx, sealCy + 0.6, { align: 'center' });
-  doc.setFontSize(4);
-  doc.text('OSCE', sealCx, sealCy + 3.6, { align: 'center' });
-
-  return footerY + 20;
+  return curY + 4;
 }
 
 export async function downloadOsceReportPdf(data: OsceReportData): Promise<void> {
@@ -654,10 +600,10 @@ export async function downloadOsceReportPdf(data: OsceReportData): Promise<void>
     y = drawSection(doc, title, body, y, isAr);
   }
 
-  // Draw the Full AI Report Card as shown in the screenshot
-  y = drawFullAiReportCard(doc, data, y + 2, isAr);
+  // Draw the Full AI Report Card as shown in the design
+  drawFullAiReportCard(doc, data, y + 2, isAr);
 
-  drawFooter(doc, y + 4, isAr);
+  // Note: Report footer is removed from download as requested by user
 
   doc.save(`synoza-report-${data.sessionId.slice(0, 8)}.pdf`);
 }

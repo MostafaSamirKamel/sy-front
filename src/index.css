@@ -49,6 +49,11 @@ html[lang="ar"],
   letter-spacing: 0;
 }
 
+[dir="auto"] {
+  unicode-bidi: plaintext;
+  text-align: start;
+}
+
 html[lang="ar"] body,
 [dir="rtl"] body,
 [dir="rtl"] input,

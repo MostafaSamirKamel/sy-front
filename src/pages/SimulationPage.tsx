@@ -1714,14 +1714,13 @@ function ExaminationView({
                           ? 'bg-linear-to-br from-teal-700 to-teal-600 text-white rounded-br-xs'
                           : 'bg-slate-100 dark:bg-slate-800/90 text-slate-800 dark:text-slate-100 rounded-bl-xs border border-slate-200/60 dark:border-slate-700/60'
                       }`}
-                      dir="auto"
                     >
                       {!isStudent && (
-                        <p className="text-[10px] font-black uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1 text-start" dir="auto">
                           {t("clinicalExaminer")}
                         </p>
                       )}
-                      <div className="whitespace-pre-line">
+                      <div className="whitespace-pre-line text-start break-words" dir="auto" style={{ unicodeBidi: 'plaintext' }}>
                         {m.content}
                       </div>
                     </div>
@@ -3158,6 +3157,70 @@ function FeedbackView({
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Full AI Report Card on Web */}
+        <div className="bg-white/90 dark:bg-slate-800/80 rounded-2xl border border-[#ece7dc] dark:border-slate-700/80 p-4 sm:p-6 shadow-xs space-y-3 mt-6">
+          <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-700/80">
+            <div className="w-10 h-10 rounded-full bg-[#122b34] text-white flex items-center justify-center shrink-0 shadow-sm">
+              <FileText size={18} />
+            </div>
+            <div>
+              <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">
+                {t("fullReport") || "FULL AI REPORT"}
+              </h4>
+              <div className="w-10 h-0.5 bg-slate-200 dark:bg-slate-700 mt-1 rounded-full" />
+            </div>
+          </div>
+
+          <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed" dir="auto">
+            {result.fullReport ? (
+              <div className="whitespace-pre-line space-y-2 font-normal">
+                {String(result.fullReport)
+                  .replace(/^#{1,3}\s+/gm, '')
+                  .replace(/\*\*(.+?)\*\*/g, '$1')
+                  .trim()}
+              </div>
+            ) : (
+              (() => {
+                const str = String(result.strengths ?? '');
+                const wk = String(result.weaknesses ?? '');
+                const mq = String(result.missedQuestions ?? '');
+                const ce = String(result.clinicalErrors ?? '');
+                return (
+                  <div className="space-y-3 font-normal">
+                    <p className="font-semibold text-slate-800 dark:text-slate-100">
+                      {String(result.recommendations || result.idealApproach || "The candidate completed the interactive clinical OSCE session covering systematic history taking and physical examination findings.")}
+                    </p>
+                    {str && (
+                      <div>
+                        <span className="font-bold text-teal-700 dark:text-teal-400">Communication & Professionalism: </span>
+                        <span>{str}</span>
+                      </div>
+                    )}
+                    {wk && (
+                      <div>
+                        <span className="font-bold text-amber-700 dark:text-amber-400">History Taking & Areas of Improvement: </span>
+                        <span>{wk}</span>
+                      </div>
+                    )}
+                    {mq && (
+                      <div>
+                        <span className="font-bold text-sky-700 dark:text-sky-400">Clinical Examination Findings: </span>
+                        <span>{mq}</span>
+                      </div>
+                    )}
+                    {ce && (
+                      <div>
+                        <span className="font-bold text-rose-700 dark:text-rose-400">Clinical Reasoning & Critical Errors: </span>
+                        <span>{ce}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()
+            )}
+          </div>
         </div>
 
         {/* Certificate Signature & Seal Footer */}
