@@ -96,25 +96,55 @@ function speakViaBrowser(text: string, lang: string): Promise<void> {
 
     primeSpeechSynthesis();
     const utterance = new SpeechSynthesisUtterance(text.trim());
+    let finished = false;
+
+    const cleanupAndResolve = () => {
+      if (!finished) {
+        finished = true;
+        resolve();
+      }
+    };
+
+    // Safety timeout in case browser TTS hangs without triggering onend/onerror
+    const safetyTimer = setTimeout(cleanupAndResolve, 12000);
 
     const start = () => {
       applyVoice(utterance, lang);
-      utterance.onend = () => resolve();
-      utterance.onerror = () => resolve();
-      window.speechSynthesis.speak(utterance);
+      utterance.onend = () => {
+        clearTimeout(safetyTimer);
+        cleanupAndResolve();
+      };
+      utterance.onerror = () => {
+        clearTimeout(safetyTimer);
+        cleanupAndResolve();
+      };
+      try {
+        window.speechSynthesis.speak(utterance);
+      } catch {
+        clearTimeout(safetyTimer);
+        cleanupAndResolve();
+      }
     };
 
     if (window.speechSynthesis.getVoices().length) {
       start();
     } else {
-      window.speechSynthesis.addEventListener('voiceschanged', start, { once: true });
-      start();
+      let fired = false;
+      const onVoices = () => {
+        if (!fired) {
+          fired = true;
+          start();
+        }
+      };
+      window.speechSynthesis.addEventListener('voiceschanged', onVoices, { once: true });
+      // If voiceschanged doesn't fire within 250ms, start anyway
+      setTimeout(onVoices, 250);
     }
   });
 }
 
 /**
- * Speak the exact reply text. Prefer server TTS on mobile; fall back to browser.
+ * Speak the exact reply text. Prefer server TTS for natural quality; fall back to browser.
  * Resolves when playback finishes (or fails gracefully). Does not throw for soft failures.
  */
 export async function speakText(
@@ -125,18 +155,19 @@ export async function speakText(
   if (!trimmed) return { ok: true };
 
   try {
-    if (IS_MOBILE) {
-      try {
-        await speakViaServer(trimmed, lang);
-        return { ok: true };
-      } catch {
-        await speakViaBrowser(trimmed, lang);
-        return { ok: true };
-      }
+    // 1. Try server TTS (high quality natural Egyptian Arabic / English)
+    try {
+      await speakViaServer(trimmed, lang);
+      return { ok: true };
+    } catch (serverErr) {
+      console.warn('[speech] Server TTS failed, falling back to browser synthesis:', serverErr);
     }
+
+    // 2. Fallback to browser synthesis
     await speakViaBrowser(trimmed, lang);
     return { ok: true };
   } catch (err) {
+    console.warn('[speech] speakText error:', err);
     return { ok: false, error: err instanceof Error ? err.message : 'tts-failed' };
   }
 }
