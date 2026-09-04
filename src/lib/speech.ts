@@ -14,35 +14,48 @@ let activeAudio: HTMLAudioElement | null = null;
 let activeObjectUrl: string | null = null;
 
 function pickVoice(lang: string): SpeechSynthesisVoice | undefined {
-  if (typeof window === 'undefined') return undefined;
+  if (typeof window === 'undefined' || !window.speechSynthesis) return undefined;
   const voices = window.speechSynthesis.getVoices();
-  if (lang.startsWith('ar')) {
+  if (!voices || voices.length === 0) return undefined;
+
+  const isAr = lang.toLowerCase().startsWith('ar');
+  if (isAr) {
     return (
       voices.find((v) => EGYPTIAN_VOICE_HINT.test(`${v.lang} ${v.name}`)) ||
-      voices.find((v) => v.lang.toLowerCase() === 'ar-eg') ||
-      voices.find((v) => v.lang.toLowerCase().startsWith('ar')) ||
+      voices.find((v) => v.lang.toLowerCase() === 'ar-eg' || v.lang.toLowerCase() === 'ar_eg') ||
+      voices.find((v) => v.lang.toLowerCase().startsWith('ar') || /arabic/i.test(v.name)) ||
       undefined
     );
   }
+
   return (
-    voices.find((v) => v.lang.startsWith('en') && /US|Google US|Microsoft.*English/i.test(v.name)) ||
-    voices.find((v) => v.lang.startsWith('en')) ||
+    voices.find((v) => v.lang.toLowerCase().startsWith('en') && /US|Google US|Microsoft.*English|Natural/i.test(v.name)) ||
+    voices.find((v) => v.lang.toLowerCase().startsWith('en')) ||
     undefined
   );
 }
 
 function applyVoice(utterance: SpeechSynthesisUtterance, lang: string) {
   const voice = pickVoice(lang);
-  if (voice) utterance.voice = voice;
-  utterance.lang = lang.startsWith('ar') ? 'ar-EG' : 'en-US';
-  utterance.rate = lang.startsWith('ar') ? 1.08 : 1.05;
-  utterance.pitch = lang.startsWith('ar') ? 1.02 : 1;
+  if (voice) {
+    utterance.voice = voice;
+    utterance.lang = voice.lang;
+  } else {
+    utterance.lang = lang.toLowerCase().startsWith('ar') ? 'ar-EG' : 'en-US';
+  }
+  utterance.rate = lang.toLowerCase().startsWith('ar') ? 1.05 : 1.0;
+  utterance.pitch = 1.0;
 }
 
 function primeSpeechSynthesis() {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return;
   const synth = window.speechSynthesis;
-  synth.cancel();
-  if (typeof synth.resume === 'function') synth.resume();
+  try {
+    synth.cancel();
+    if (typeof synth.resume === 'function') synth.resume();
+  } catch {
+    // ignore
+  }
 }
 
 function clearActiveAudio() {
@@ -96,55 +109,69 @@ function speakViaBrowser(text: string, lang: string): Promise<void> {
 
     primeSpeechSynthesis();
     const utterance = new SpeechSynthesisUtterance(text.trim());
-    let finished = false;
 
-    const cleanupAndResolve = () => {
-      if (!finished) {
-        finished = true;
-        resolve();
-      }
+    let finished = false;
+    let keepAliveTimer: ReturnType<typeof setInterval> | null = null;
+    let safetyTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const cleanup = () => {
+      if (finished) return;
+      finished = true;
+      if (keepAliveTimer) clearInterval(keepAliveTimer);
+      if (safetyTimer) clearTimeout(safetyTimer);
+      resolve();
     };
 
-    // Safety timeout in case browser TTS hangs without triggering onend/onerror
-    const safetyTimer = setTimeout(cleanupAndResolve, 12000);
+    // Chrome/Android speech synthesis keep-alive safeguard
+    keepAliveTimer = setInterval(() => {
+      if (!finished && window.speechSynthesis.speaking) {
+        window.speechSynthesis.pause();
+        window.speechSynthesis.resume();
+      }
+    }, 4000);
+
+    // Timeout based on length (min 8s, max 25s)
+    const timeoutMs = Math.max(8000, Math.min(25000, text.length * 90));
+    safetyTimer = setTimeout(cleanup, timeoutMs);
 
     const start = () => {
       applyVoice(utterance, lang);
-      utterance.onend = () => {
-        clearTimeout(safetyTimer);
-        cleanupAndResolve();
-      };
-      utterance.onerror = () => {
-        clearTimeout(safetyTimer);
-        cleanupAndResolve();
+      utterance.onend = cleanup;
+      utterance.onerror = (e) => {
+        console.warn('[speech] synthesis error:', e);
+        cleanup();
       };
       try {
         window.speechSynthesis.speak(utterance);
-      } catch {
-        clearTimeout(safetyTimer);
-        cleanupAndResolve();
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+      } catch (err) {
+        console.warn('[speech] speak call failed:', err);
+        cleanup();
       }
     };
 
-    if (window.speechSynthesis.getVoices().length) {
+    const voices = window.speechSynthesis.getVoices();
+    if (voices && voices.length > 0) {
       start();
     } else {
-      let fired = false;
+      let started = false;
       const onVoices = () => {
-        if (!fired) {
-          fired = true;
+        if (!started) {
+          started = true;
+          window.speechSynthesis.removeEventListener('voiceschanged', onVoices);
           start();
         }
       };
-      window.speechSynthesis.addEventListener('voiceschanged', onVoices, { once: true });
-      // If voiceschanged doesn't fire within 250ms, start anyway
-      setTimeout(onVoices, 250);
+      window.speechSynthesis.addEventListener('voiceschanged', onVoices);
+      setTimeout(onVoices, 150);
     }
   });
 }
 
 /**
- * Speak the exact reply text. Prefer server TTS for natural quality; fall back to browser.
+ * Speak the exact reply text. Prefer server TTS on mobile; fall back to browser.
  * Resolves when playback finishes (or fails gracefully). Does not throw for soft failures.
  */
 export async function speakText(
@@ -155,19 +182,18 @@ export async function speakText(
   if (!trimmed) return { ok: true };
 
   try {
-    // 1. Try server TTS (high quality natural Egyptian Arabic / English)
-    try {
-      await speakViaServer(trimmed, lang);
-      return { ok: true };
-    } catch (serverErr) {
-      console.warn('[speech] Server TTS failed, falling back to browser synthesis:', serverErr);
+    if (IS_MOBILE) {
+      try {
+        await speakViaServer(trimmed, lang);
+        return { ok: true };
+      } catch {
+        await speakViaBrowser(trimmed, lang);
+        return { ok: true };
+      }
     }
-
-    // 2. Fallback to browser synthesis
     await speakViaBrowser(trimmed, lang);
     return { ok: true };
   } catch (err) {
-    console.warn('[speech] speakText error:', err);
     return { ok: false, error: err instanceof Error ? err.message : 'tts-failed' };
   }
 }
