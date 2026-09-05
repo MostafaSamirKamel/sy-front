@@ -508,9 +508,22 @@ export default function SimulationPage() {
   const patientLiveCall = useLiveVoiceCall({
     listenLang,
     speakLang,
-    sessionLang: micSessionLang,
+    // The experimental OpenRouter STT must explicitly receive Arabic in the
+    // Arabic UI even when the session was started in AUTO mode.
+    sessionLang: voiceProvider === 'openrouter_audio' && lang !== 'EN' ? 'AR' : micSessionLang,
     sendMessage,
-    speakReplies: true,
+    // Student can speak / live-call; AI replies are text-only (no TTS).
+    speakReplies: false,
+    // OpenRouter STT must receive recorded audio rather than a browser-STT-only
+    // text turn, so this remains a real audio comparison.
+    forceAudioRecording: voiceProvider === 'openrouter_audio',
+    voiceTurn: sessionId
+      ? {
+          sessionId,
+          getRequestMeta: getVoiceTurnMeta,
+          onTurn: appendVoiceTurnMessages,
+        }
+      : undefined,
     disabled: voiceCallContext !== 'patient' || sessionLocked,
     onError: handleLiveCallError,
   });
@@ -520,13 +533,40 @@ export default function SimulationPage() {
     speakLang,
     sessionLang: micSessionLang,
     sendMessage,
-    speakReplies: true,
+    // Student can speak / live-call; AI replies are text-only (no TTS).
+    speakReplies: false,
+    voiceTurn: sessionId
+      ? {
+          sessionId,
+          getRequestMeta: getVoiceTurnMeta,
+          onTurn: appendVoiceTurnMessages,
+        }
+      : undefined,
     disabled: voiceCallContext !== 'examiner' || sessionLocked,
     onError: handleLiveCallError,
   });
 
   const isPatientLiveCall = voiceCallContext === 'patient';
-  const activeLiveCall = isPatientLiveCall ? patientLiveCall : examinerLiveCall;
+  const appendRealtimeMessage = useCallback((message: { id: string; role: string; content: string; stage: string; createdAt: string }) => {
+    setSession((prev) => prev && prev.messages.some((item) => item.id === message.id)
+      ? prev
+      : prev ? { ...prev, messages: [...prev.messages, { ...message, role: message.role as Message['role'] }] } : prev);
+  }, []);
+  const realtimePatientCall = useOpenAIRealtimeCall({
+    sessionId: sessionId || '',
+    stage: activeStage,
+    sessionLanguage: micSessionLang,
+    onStudentMessage: appendRealtimeMessage,
+    onPatientMessage: appendRealtimeMessage,
+    onCallReady: () => setRealtimeFallback(false),
+    onError: (code) => {
+      setRealtimeFallback(true);
+      handleLiveCallError(code);
+    },
+  });
+  const activeLiveCall = isPatientLiveCall && voiceProvider !== 'openrouter_audio' && !realtimeFallback
+    ? realtimePatientCall
+    : isPatientLiveCall ? patientLiveCall : examinerLiveCall;
 
   useEffect(() => {
     if (!sessionId) return;
@@ -552,9 +592,10 @@ export default function SimulationPage() {
     if (!voiceCallContext) {
       patientLiveCall.stopCall();
       examinerLiveCall.stopCall();
+      realtimePatientCall.stopCall();
       stopListening();
     }
-  }, [voiceCallContext, patientLiveCall.stopCall, examinerLiveCall.stopCall, stopListening]);
+  }, [voiceCallContext, patientLiveCall.stopCall, examinerLiveCall.stopCall, realtimePatientCall.stopCall, stopListening]);
 
   useEffect(() => {
     // Language toggle must never leave STT running or auto-accept phantom results.
@@ -563,6 +604,7 @@ export default function SimulationPage() {
     setMicError('');
     if (patientLiveCall.isLiveCall) patientLiveCall.stopCall();
     if (examinerLiveCall.isLiveCall) examinerLiveCall.stopCall();
+    if (realtimePatientCall.isLiveCall) realtimePatientCall.stopCall();
     stopListening();
     forceReleaseMic();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -572,6 +614,7 @@ export default function SimulationPage() {
     setMicError('');
     patientLiveCall.stopCall();
     examinerLiveCall.stopCall();
+    realtimePatientCall.stopCall();
     stopSpeaking();
     void unlockMobileAudio();
     // Starting a new recording may refill the input; allow mic text again.
@@ -591,24 +634,35 @@ export default function SimulationPage() {
 
   const toggleLiveCall = useCallback(() => {
     setMicError('');
-    if (activeLiveCall.isLiveCall) {
-      activeLiveCall.stopCall();
+    if (isPatientLiveCall) {
+      if (realtimePatientCall.isLiveCall || patientLiveCall.isLiveCall) {
+        realtimePatientCall.stopCall();
+        patientLiveCall.stopCall();
+        return;
+      }
+      forceReleaseMic();
+      stopListening();
+      examinerLiveCall.stopCall();
+      setInput('');
+      window.setTimeout(() => activeLiveCall.toggleLiveCall(), IS_MOBILE ? 650 : 300);
+      return;
+    }
+    if (examinerLiveCall.isLiveCall) {
+      examinerLiveCall.stopCall();
       return;
     }
     forceReleaseMic();
     stopListening();
-    if (isPatientLiveCall) {
-      examinerLiveCall.stopCall();
-    } else {
-      patientLiveCall.stopCall();
-    }
+    patientLiveCall.stopCall();
+    realtimePatientCall.stopCall();
     setInput('');
-    window.setTimeout(() => activeLiveCall.toggleLiveCall(), IS_MOBILE ? 650 : 300);
+    window.setTimeout(() => examinerLiveCall.toggleLiveCall(), IS_MOBILE ? 650 : 300);
   }, [
-    activeLiveCall,
     isPatientLiveCall,
-    examinerLiveCall,
     patientLiveCall,
+    realtimePatientCall,
+    activeLiveCall,
+    examinerLiveCall,
     forceReleaseMic,
     stopListening,
   ]);

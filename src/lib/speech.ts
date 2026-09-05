@@ -14,48 +14,35 @@ let activeAudio: HTMLAudioElement | null = null;
 let activeObjectUrl: string | null = null;
 
 function pickVoice(lang: string): SpeechSynthesisVoice | undefined {
-  if (typeof window === 'undefined' || !window.speechSynthesis) return undefined;
+  if (typeof window === 'undefined') return undefined;
   const voices = window.speechSynthesis.getVoices();
-  if (!voices || voices.length === 0) return undefined;
-
-  const isAr = lang.toLowerCase().startsWith('ar');
-  if (isAr) {
+  if (lang.startsWith('ar')) {
     return (
       voices.find((v) => EGYPTIAN_VOICE_HINT.test(`${v.lang} ${v.name}`)) ||
-      voices.find((v) => v.lang.toLowerCase() === 'ar-eg' || v.lang.toLowerCase() === 'ar_eg') ||
-      voices.find((v) => v.lang.toLowerCase().startsWith('ar') || /arabic/i.test(v.name)) ||
+      voices.find((v) => v.lang.toLowerCase() === 'ar-eg') ||
+      voices.find((v) => v.lang.toLowerCase().startsWith('ar')) ||
       undefined
     );
   }
-
   return (
-    voices.find((v) => v.lang.toLowerCase().startsWith('en') && /US|Google US|Microsoft.*English|Natural/i.test(v.name)) ||
-    voices.find((v) => v.lang.toLowerCase().startsWith('en')) ||
+    voices.find((v) => v.lang.startsWith('en') && /US|Google US|Microsoft.*English/i.test(v.name)) ||
+    voices.find((v) => v.lang.startsWith('en')) ||
     undefined
   );
 }
 
 function applyVoice(utterance: SpeechSynthesisUtterance, lang: string) {
   const voice = pickVoice(lang);
-  if (voice) {
-    utterance.voice = voice;
-    utterance.lang = voice.lang;
-  } else {
-    utterance.lang = lang.toLowerCase().startsWith('ar') ? 'ar-EG' : 'en-US';
-  }
-  utterance.rate = lang.toLowerCase().startsWith('ar') ? 1.05 : 1.0;
-  utterance.pitch = 1.0;
+  if (voice) utterance.voice = voice;
+  utterance.lang = lang.startsWith('ar') ? 'ar-EG' : 'en-US';
+  utterance.rate = lang.startsWith('ar') ? 1.08 : 1.05;
+  utterance.pitch = lang.startsWith('ar') ? 1.02 : 1;
 }
 
 function primeSpeechSynthesis() {
-  if (typeof window === 'undefined' || !window.speechSynthesis) return;
   const synth = window.speechSynthesis;
-  try {
-    synth.cancel();
-    if (typeof synth.resume === 'function') synth.resume();
-  } catch {
-    // ignore
-  }
+  synth.cancel();
+  if (typeof synth.resume === 'function') synth.resume();
 }
 
 function clearActiveAudio() {
@@ -110,62 +97,18 @@ function speakViaBrowser(text: string, lang: string): Promise<void> {
     primeSpeechSynthesis();
     const utterance = new SpeechSynthesisUtterance(text.trim());
 
-    let finished = false;
-    let keepAliveTimer: ReturnType<typeof setInterval> | null = null;
-    let safetyTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const cleanup = () => {
-      if (finished) return;
-      finished = true;
-      if (keepAliveTimer) clearInterval(keepAliveTimer);
-      if (safetyTimer) clearTimeout(safetyTimer);
-      resolve();
-    };
-
-    // Chrome/Android speech synthesis keep-alive safeguard
-    keepAliveTimer = setInterval(() => {
-      if (!finished && window.speechSynthesis.speaking) {
-        window.speechSynthesis.pause();
-        window.speechSynthesis.resume();
-      }
-    }, 4000);
-
-    // Timeout based on length (min 8s, max 25s)
-    const timeoutMs = Math.max(8000, Math.min(25000, text.length * 90));
-    safetyTimer = setTimeout(cleanup, timeoutMs);
-
     const start = () => {
       applyVoice(utterance, lang);
-      utterance.onend = cleanup;
-      utterance.onerror = (e) => {
-        console.warn('[speech] synthesis error:', e);
-        cleanup();
-      };
-      try {
-        window.speechSynthesis.speak(utterance);
-        if (window.speechSynthesis.paused) {
-          window.speechSynthesis.resume();
-        }
-      } catch (err) {
-        console.warn('[speech] speak call failed:', err);
-        cleanup();
-      }
+      utterance.onend = () => resolve();
+      utterance.onerror = () => resolve();
+      window.speechSynthesis.speak(utterance);
     };
 
-    const voices = window.speechSynthesis.getVoices();
-    if (voices && voices.length > 0) {
+    if (window.speechSynthesis.getVoices().length) {
       start();
     } else {
-      let started = false;
-      const onVoices = () => {
-        if (!started) {
-          started = true;
-          window.speechSynthesis.removeEventListener('voiceschanged', onVoices);
-          start();
-        }
-      };
-      window.speechSynthesis.addEventListener('voiceschanged', onVoices);
-      setTimeout(onVoices, 150);
+      window.speechSynthesis.addEventListener('voiceschanged', start, { once: true });
+      start();
     }
   });
 }
